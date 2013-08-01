@@ -1,0 +1,61 @@
+package RapidApp;
+use strict;
+use warnings;
+
+our $VERSION = 0.99014;
+
+# ABSTRACT: Turnkey ajaxy webapps
+
+# use to require some modules with specific min versions:
+use Catalyst 5.90002;
+use DBIx::Class 0.08250;
+use SQL::Translator 0.11016;
+use Template 2.25;
+use DateTime::Format::SQLite;
+use JavaScript::ExtJS::V3 '3.4.0';
+
+# quick Module version check cmd:
+#   perl -M"Catalyst 999" -e1
+
+use File::ShareDir qw(dist_dir);
+
+sub share_dir {
+  my $class = shift || __PACKAGE__;
+  return $ENV{RAPIDAPP_SHARE_DIR} || dist_dir($class);
+}
+
+
+1;
+
+
+__END__
+
+=pod
+
+=head1 NAME
+
+RapidApp - Turnkey ajaxy webapps
+
+=head1 DESCRIPTION
+
+Preliminary release of the RapidApp framework. More documentation TBD.
+
+For more information and example usage, please see the RapidApp 
+GitHub page: L<https://github.com/vanstyn/RapidApp>.
+
+
+=head1 AUTHOR
+
+Henry Van Styn <vanstyn@cpan.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2013 by IntelliTree Solutions llc.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=cut
+
+
+
