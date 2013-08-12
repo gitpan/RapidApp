@@ -13,6 +13,11 @@ sub login :Local :Args(0) {
   my $self = shift;
 	my $c = shift;
   
+  # NEW: allow this action to be dual-use to display the login page
+  # for GET requests, and handle the login for POST requests
+  return $self->render_login_page($c) if ($c->req->method eq 'GET');
+
+  
   # if the user is logging back in, we keep their old session and just renew the user.
   # if a new user is logging in, we throw away any existing session variables
   my $haveSessionForUser = ($c->session_is_valid && $c->session->{RapidApp_username}) ? 1 : 0;
@@ -36,8 +41,10 @@ sub logout :Local :Args(0) {
   $c->logout;
   $c->delete_session('logout');
   
-  $c->response->redirect('/');
-  $c->response->body(' ');
+  my $redirect = $c->req->params->{redirect} || '/';
+  $redirect = "/$redirect" unless ($redirect =~ /^\//); #<-- enforce local
+  
+  $c->response->redirect($redirect);
   return $c->detach;
 }
 
@@ -80,6 +87,7 @@ sub do_login {
 	my $pass = shift;
   
 	if($c->authenticate({ username => $user, password => $pass })) {
+    $c->session->{RapidApp_username} = $user;
     $c->log->info("Successfully authenticated user '$user'");
     $c->user->update({ 
       last_login_ts => DateTime->now( time_zone => 'local' ) 
@@ -142,11 +150,11 @@ sub handle_fresh_login {
 
 sub render_login_page {
 	my $self = shift;
-  my $c = shift;
+  my $c = shift or die '$c object arg missing!';
 	my $cnf = shift || {};
   
   my $config = $c->config->{'Plugin::RapidApp::AuthCore'} || {};
-  $config->{login_template} ||= 'rapidapp/public/login.tt';
+  $config->{login_template} ||= 'rapidapp/public/login.html';
   
   my $ver_string = ref $c;
   my $ver = eval('$' . $ver_string . '::VERSION');
@@ -159,7 +167,7 @@ sub render_login_page {
   my $TC = $c->template_controller;
   my $body = $TC->template_render($config->{login_template},{
     login_logo_url => $config->{login_logo_url}, #<-- default undef
-    form_post_url => '/auth/login',
+    form_post_url => join('/','',$self->action_namespace($c),'login'),
 		ver_string	=> $ver_string,
     title => $ver_string . ' - Login',
 		%$cnf

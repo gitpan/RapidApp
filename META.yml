@@ -86,7 +86,6 @@ requires:
   JavaScript::ExtJS::V3: 0
   MIME::Base64: 0
   MRO::Compat: 0
-  Math::BigInt: 0
   Module::Find: 0
   Module::Runtime: 0
   Moo: 0
@@ -140,5 +139,6 @@ requires:
   strict: 0
   warnings: 0
 resources:
+  homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99014
+version: 0.99015

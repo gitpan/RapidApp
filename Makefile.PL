@@ -95,7 +95,6 @@ my %WriteMakefileArgs = (
     "JavaScript::ExtJS::V3" => 0,
     "MIME::Base64" => 0,
     "MRO::Compat" => 0,
-    "Math::BigInt" => 0,
     "Module::Find" => 0,
     "Module::Runtime" => 0,
     "Moo" => 0,
@@ -149,7 +148,7 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "0.99014",
+  "VERSION" => "0.99015",
   "test" => {
     "TESTS" => ""
   }

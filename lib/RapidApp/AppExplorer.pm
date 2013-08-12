@@ -20,6 +20,8 @@ has 'iconCls', is => 'ro',	default => 'ra-icon-server-database';
 
 has 'navtree_class', is => 'ro', isa => 'Maybe[Str]', default => sub{undef};
 has 'navtree_params', is => 'ro', isa => 'HashRef', lazy => 1, default => sub{{}};
+has 'navtree_load_collapsed', is => 'ro', isa => 'Bool', default => 0;
+has 'navtree_disabled', is => 'ro', isa => 'Bool', default => 0;
 
 has 'navtrees', is => 'ro', isa => 'ArrayRef', lazy => 1, default => sub {
   my $self = shift;
@@ -89,6 +91,42 @@ around 'content' => sub {
   
   my $cnf = $self->$orig(@_);
   
+	return { %$cnf,
+		id			=> 'explorer-id',
+		xtype		=> 'panel',
+		layout	=> 'border',
+		items		=> [
+			$self->content_area,
+			$self->navtree_area
+		],
+		footer => \1,
+		footerCfg => {
+			tag => 'div',
+      # FIXME: convert to template
+			html => q{
+<div class="ra-footer no-text-select"><div class="wrap">
+	<table width="100%"><tr>
+		<td width="25%">
+      <a class="left" target="_blank" href="http://www.rapidapp.info"></a>
+		</td>
+		<td width="50%" class="center">
+			<div id="infostatus"></div>
+		</td>
+		<td width="25%" class="right">
+			} . $self->right_footer . q{
+		</td>
+	</tr></table>
+</div></div>
+}
+		},
+	};
+};
+
+sub navtree_area {
+  my $self = shift;
+  
+  return () if ($self->navtree_disabled);
+
   my $west = {
     region	=> 'west',
     id => 'main-navtrees-container',
@@ -109,6 +147,8 @@ around 'content' => sub {
     items => $self->west_area_items,
     autoScroll => \1
   };
+  
+  $west->{collapsed} = \1 if ($self->navtree_load_collapsed);
   
   # Render a custom footer at the bottom of the navtree
   if($self->navtree_footer_template) {
@@ -134,36 +174,8 @@ around 'content' => sub {
     };
   }
   
-	return { %$cnf,
-		id			=> 'explorer-id',
-		xtype		=> 'panel',
-		layout	=> 'border',
-		items		=> [
-			$self->content_area,
-			$west
-		],
-		footer => \1,
-		footerCfg => {
-			tag => 'div',
-			html => q{
-<div class="ra-footer no-text-select"><div class="wrap">
-	<table width="100%"><tr>
-		<td width="25%">
-      <a class="left" href="#!/tpl/rapidapp/pages/about_rapidapp"></a>
-		</td>
-		<td width="50%" class="center">
-			<div id="infostatus"></div>
-		</td>
-		<td width="25%" class="right">
-			} . $self->right_footer . q{
-		</td>
-	</tr></table>
-</div></div>
+  return $west;
 }
-		},
-	};
-};
-
 
 sub west_area_items {
 	my $self = shift;
@@ -186,38 +198,28 @@ sub content_area {
 		margins		=> '3 3 3 0',
 		bodyCssClass		=> 'sbl-panel-body-noborder',
 	};
-	
-	#$cnf->{margins} = '3 3 3 3' unless ($self->show_navtree);
   
-  $cnf->{initLoadTabs} = [
-    {
-      title	=> '<img src="/assets/rapidapp/misc/static/images/toolbar_home.png" ' .
-        ' style="margin-bottom: -2px;" height=15 width=16>',
-      iconCls => '',
-      closable	=> \0,
-      autoLoad => {
-        url 	=> $self->Module('dashboard')->base_url,
-        params	=> {}
-      }
-    }
-  ] if ($self->dashboard_class);
+  $cnf->{margins} = '3 3 3 3' if ($self->navtree_disabled);
   
-  # ---- NEW ----
-  $cnf->{initLoadTabs} = [
-    {
-      title	=> '<img src="/assets/rapidapp/misc/static/images/toolbar_home.png" ' .
-        ' style="margin-bottom: -2px;" height=15 width=16>',
-      iconCls => '',
-      closable	=> \0,
-      autopanel_ignore_tabtitle => \1,
-      autoLoad => {
-        url 	=> $self->dashboard_url,
-        params	=> {}
-      }
+  my $initTab = {
+    title	=> '&nbsp;',
+    iconCls => 'ra-tab-icon-only-16px ra-icon-home',
+    closable	=> \0,
+    autoLoad => {
+      params	=> {}
     }
-  ] if ($self->dashboard_url);
-  # ----
-	
+  };
+
+  if ($self->dashboard_class) {
+    $initTab->{autoLoad}{url} = $self->Module('dashboard')->base_url;
+    $cnf->{initLoadTabs} = [$initTab];
+  }
+  elsif ($self->dashboard_url) {
+    $initTab->{autopanel_ignore_tabtitle} = \1;
+    $initTab->{autoLoad}{url} = $self->dashboard_url;
+    $cnf->{initLoadTabs} = [$initTab];
+  }
+  
 	return  RapidApp::JSONFunc->new(
 		func => 'new Ext.ux.RapidApp.AppTab.TabPanel',
 		parm => $cnf

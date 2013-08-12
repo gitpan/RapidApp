@@ -68,7 +68,6 @@ lib/RapidApp/BgTask/Supervisor.pm
 lib/RapidApp/BgTask/Task.pm
 lib/RapidApp/BgTask/TaskPool.pm
 lib/RapidApp/BgTaskInterface.pm
-lib/RapidApp/Catalyst.pm
 lib/RapidApp/CatalystX/Profile.pm
 lib/RapidApp/CatalystX/Profile/Controller/ControlProfiling.pm
 lib/RapidApp/CatalystX/SimpleCAS.pm
@@ -383,6 +382,7 @@ share/assets/icons/gray_down_with_pencil.png
 share/assets/icons/gray_pencil.png
 share/assets/icons/group.png
 share/assets/icons/help.png
+share/assets/icons/home.png
 share/assets/icons/house.png
 share/assets/icons/information.png
 share/assets/icons/key.png
@@ -538,6 +538,7 @@ share/assets/misc/images/btn_120x50_built.png
 share/assets/misc/images/btn_120x50_built_shadow.png
 share/assets/misc/images/btn_120x50_powered.png
 share/assets/misc/images/btn_120x50_powered_shadow.png
+share/assets/misc/images/bullet_arrow_down.png
 share/assets/misc/images/bullet_arrow_down_sm.png
 share/assets/misc/images/bullet_arrow_right_sm.png
 share/assets/misc/images/bullet_arrow_up_sm.png
@@ -585,6 +586,7 @@ share/assets/misc/images/pencil_tiny.png
 share/assets/misc/images/powered_intellitree_footer.png
 share/assets/misc/images/rapidapp_catalyst_logo.png
 share/assets/misc/images/rapidapp_icon_medium.png
+share/assets/misc/images/rapidapp_logo_small.png
 share/assets/misc/images/rapidapp_logo_tiny.png
 share/assets/misc/images/rapidapp_powered_logo_small.png
 share/assets/misc/images/rapidapp_powered_logo_tiny.png
@@ -604,8 +606,8 @@ share/assets/misc/images/tableft1.gif
 share/assets/misc/images/tabright1.gif
 share/assets/misc/images/tabsBorder.png
 share/assets/misc/images/td_back.gif
-share/assets/misc/images/toolbar_home.png
 share/assets/misc/images/white.png
+share/assets/misc/js/external_hashpath.js
 share/assets/misc/login/clippardShadowLogo.png
 share/assets/misc/login/css/style.css
 share/assets/misc/login/foundation/images/misc/button-gloss.png
@@ -644,6 +646,7 @@ share/assets/misc/login/powered_intellitree_footer.png
 share/assets/misc/s.gif
 share/assets/ra-scoped-reset.css
 share/templates/rapidapp/README.md
+share/templates/rapidapp/default_root_template.html
 share/templates/rapidapp/exception.tt
 share/templates/rapidapp/ext_loginpage.tt
 share/templates/rapidapp/ext_page.tt
@@ -654,7 +657,9 @@ share/templates/rapidapp/http-status.tt
 share/templates/rapidapp/misc/property_table.tt
 share/templates/rapidapp/pages/about_rapidapp.tt
 share/templates/rapidapp/pages/roadmap.tt
-share/templates/rapidapp/public/login.tt
+share/templates/rapidapp/public/log_in_out_control.tt
+share/templates/rapidapp/public/login.html
+share/templates/rapidapp/public/login_form.tt
 share/templates/rapidapp/simple_auth_banner.tt
 share/templates/rapidapp/web1_page.tt
 share/templates/rapidapp/xhtml_document.tt

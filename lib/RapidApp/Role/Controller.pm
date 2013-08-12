@@ -226,16 +226,19 @@ sub Controller {
   ### -----------------
   ### NEW: detect direct browser GET requests (i.e. not from the ExtJS client):
   ### and redirect them back to the #! hashnav path
-  if ($c->req->method eq 'GET' && ! $c->req->header('X-RapidApp-RequestContentType') && scalar(@args) > 0) {
-    my $url = join('/','/#!',@args);
-    my %params = %{$c->req->params};
-    if(keys %params > 0) {
-      my $qs = join('&',map { $_ . '=' . uri_escape($params{$_}) } keys %params);
-      $url .= '?' . $qs;
+  my ($opt) = @args;
+  if ($opt && $c->req->method eq 'GET' && ! $c->req->header('X-RapidApp-RequestContentType')) {
+    # Only for paths which are actually registered modules/actions:
+    if($self->has_subarg($opt)) {
+      my $url = join('/','/#!',@args);
+      my %params = %{$c->req->params};
+      if(keys %params > 0) {
+        my $qs = join('&',map { $_ . '=' . uri_escape($params{$_}) } keys %params);
+        $url .= '?' . $qs;
+      }
+      $c->response->redirect($url);
+      return $c->detach;
     }
-    
-    $c->response->redirect($url);
-    return $c->detach;
   }
   ###
   ### -----------------
@@ -254,13 +257,23 @@ sub Controller {
 	
 	# dispatch the request to the appropriate handler
 	
-	$self->c->log->debug('--> ' . 
+	$c->log->debug('--> ' . 
 		GREEN.BOLD . ref($self) . CLEAR . '  ' . 
 		GREEN . join('/',@args) . CLEAR
-	);
+	) if ($c->debug);
 
 	$self->controller_dispatch(@args);
 }
+
+# module or action:
+sub has_subarg {
+  my ($self, $opt) = @_;
+  return ($opt && (
+    $self->has_module($opt) ||
+    $self->has_action($opt)
+  )) ? 1 : 0;
+}
+
 
 has 'get_local_args', is => 'ro', isa => 'Maybe[CodeRef]', lazy => 1, default => undef;
 
@@ -346,11 +359,13 @@ sub controller_dispatch {
 		}
 	}
 	elsif ($ct ne 'JSON' && $ct ne 'text/x-rapidapp-form-response' && $self->auto_web1) {
-		$self->c->log->debug("--> " . GREEN . BOLD . "[web1_content]" . CLEAR . ". (no action)");
+		$self->c->log->debug("--> " . GREEN . BOLD . "[web1_content]" . CLEAR . ". (no action)")
+      if($self->c->debug);
 		return $self->web1_content;
 	}
 	else {
-		$self->c->log->debug("--> " . GREEN . BOLD . "[content]" . CLEAR . ". (no action)");
+		$self->c->log->debug("--> " . GREEN . BOLD . "[content]" . CLEAR . ". (no action)")
+      if($self->c->debug);
 		return $self->render_data($self->content);
 	}
 	
@@ -373,7 +388,7 @@ sub process_action {
 		GREEN.BOLD . ref($self) . CLEAR . '  ' . 
 		GREEN . "action{ " . $opt . " }" . CLEAR . '  ' . 
 		GREEN . join('/',@args) . CLEAR
-	);
+	) if ($self->c->debug);
 	
 	my $coderef = $self->get_action($opt) or die "No action named $opt";
 	
