@@ -16,6 +16,7 @@ lib/Catalyst/Model/RapidApp/CoreSchema.pm
 lib/Catalyst/Plugin/RapidApp.pm
 lib/Catalyst/Plugin/RapidApp/AuthCore.pm
 lib/Catalyst/Plugin/RapidApp/AuthCore/Controller/Auth.pm
+lib/Catalyst/Plugin/RapidApp/CoreSchemaAdmin.pm
 lib/Catalyst/Plugin/RapidApp/NavCore.pm
 lib/Catalyst/Plugin/RapidApp/NavCore/Controller.pm
 lib/Catalyst/Plugin/RapidApp/NavCore/GridRole.pm
@@ -24,6 +25,7 @@ lib/Catalyst/Plugin/RapidApp/NavCore/NavTree/Manage.pm
 lib/Catalyst/Plugin/RapidApp/RapidDbic.pm
 lib/Catalyst/Plugin/RapidApp/RapidDbic/TableBase.pm
 lib/Catalyst/Plugin/RapidApp/RequestLogger.pm
+lib/Catalyst/Plugin/RapidApp/TabGui.pm
 lib/RapidApp.pm
 lib/RapidApp/AppAuth.pm
 lib/RapidApp/AppBanner.pm
@@ -663,14 +665,3 @@ share/templates/rapidapp/public/login_form.tt
 share/templates/rapidapp/simple_auth_banner.tt
 share/templates/rapidapp/web1_page.tt
 share/templates/rapidapp/xhtml_document.tt
-t_disabled/20_DeepMap.t
-t_disabled/35_Json.t
-t_disabled/40_RelationTreeSpec.t
-t_disabled/41_RelationTreeFlattener.t
-t_disabled/42_DbicLink.t
-t_disabled/80_MsgPipe.t
-t_disabled/81_BgTask_Supervisor.t
-t_disabled/lib/DbicLinkComponent1.pm
-t_disabled/lib/DbicLinkComponent2.pm
-t_disabled/lib/FakeApp.pm
-t_disabled/lib/FakeSchema.pm
