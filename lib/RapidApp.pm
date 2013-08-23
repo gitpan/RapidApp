@@ -2,12 +2,13 @@ package RapidApp;
 use strict;
 use warnings;
 
-our $VERSION = 0.99016;
+our $VERSION = 0.99017;
 
 # ABSTRACT: Turnkey ajaxy webapps
 
 # use to require some modules with specific min versions:
 use Catalyst 5.90002;
+use Plack 1.0029;
 use DBIx::Class 0.08250;
 use SQL::Translator 0.11016;
 use Template 2.25;

@@ -4,13 +4,6 @@ META.yml
 Makefile.PL
 README
 README.md
-code_scraps/example_property_table.html
-code_scraps/example_property_table_left.html
-code_scraps/history_test/HistTest.html
-code_scraps/history_test/HistTest.js
-code_scraps/history_test/examples.css
-code_scraps/history_test/examples.js
-dbic_trace_profile.json
 dist.ini
 lib/Catalyst/Model/RapidApp/CoreSchema.pm
 lib/Catalyst/Plugin/RapidApp.pm

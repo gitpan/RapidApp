@@ -112,6 +112,7 @@ my %WriteMakefileArgs = (
     "PPI::HTML" => 0,
     "Params::Validate" => 0,
     "Path::Class" => 0,
+    "Plack" => "1.0029",
     "SQL::Translator" => "0.11016",
     "Scalar::Util" => 0,
     "Socket" => 0,
@@ -148,7 +149,7 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "0.99016",
+  "VERSION" => "0.99017",
   "test" => {
     "TESTS" => ""
   }

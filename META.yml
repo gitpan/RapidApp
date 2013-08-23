@@ -103,6 +103,7 @@ requires:
   PPI::HTML: 0
   Params::Validate: 0
   Path::Class: 0
+  Plack: 1.0029
   SQL::Translator: 0.11016
   Scalar::Util: 0
   Socket: 0
@@ -141,4 +142,4 @@ requires:
 resources:
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99016
+version: 0.99017

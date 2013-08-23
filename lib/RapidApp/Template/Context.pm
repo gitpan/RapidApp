@@ -42,8 +42,42 @@ sub div_wrap {
   return $self->Access->template_writable($template);
 }
 
+#########################
+### FIXME FIXME FIXME ###
+## This is a fix for a problem that I do not fully understand. Sometimes
+## throwing an exception **causes** another exception to be thrown with
+## a bizarre message referencing Try::Tiny::Catch and not being able to
+## call ->type() without a package or object reference... This is **UGLY**
+## in that it just always throws the first exception encountered. $LAST_ERR
+## is reset in-place as well as at the top of process() but I'm not sure
+## how safe this is. It is not possible to localize it. The purpose of the
+## fix is just to show the actual/useful error instead of the bizarre one.
+our $LAST_ERR;
+around throw => sub {
+  my ($orig, $self, @args) = @_;
+  
+  try {
+    $self->$orig(@args);
+  }
+  catch {
+    my $err = shift;
+    if($LAST_ERR) {
+      $err = $LAST_ERR;
+      $LAST_ERR = undef;
+      die $err;
+    }
+
+    $LAST_ERR = $err;
+    die $err;
+  };
+};
+###
+#########################
+
 around 'process' => sub {
   my ($orig, $self, @args) = @_;
+  
+  $LAST_ERR = undef; #<-- FIXME!! (see around throw above)
 
   # This is probably a Template::Document object:
   my $template = blessed $args[0] ? $args[0]->name : $args[0];
@@ -56,6 +90,11 @@ around 'process' => sub {
   }
   catch {
     my $err = shift;
+    
+    # Rethrow if this flag is set. This is needed specifically for
+    # the special _get_template_error() case in RapidApp::Template::Controller
+    die $err if ($self->Controller->{_no_exception_error_content});
+    
     $output = $self->_template_error_content(
       $template, $err,
       $self->Access->template_writable($template)
@@ -153,5 +192,45 @@ sub _template_error_content {
     '</div>'
   );
 }
+
+
+##################################################
+# -- NEEDED FOR SECURITY FOR NON-PRIV USERS --
+#  DISABLE ALL PLUGINS AND FILTERS EXCEPT THOSE 
+#  SPECIFICALLY CONFIGURED TO BE ALLOWED
+has '_allowed_plugins_hash', default => sub {
+  my $self = shift;
+  return { map {lc($_)=>1} @{$self->Controller->allowed_plugins} };
+}, is => 'ro', lazy => 1;
+
+has '_allowed_filters_hash', default => sub {
+  my $self = shift;
+  return { map {lc($_)=>1} @{$self->Controller->allowed_filters} };
+}, is => 'ro', lazy => 1;
+
+around 'plugin' => sub {
+  my ($orig, $self, $name, @args) = @_;
+  
+  return $self->throw(
+    Template::Constants::ERROR_PLUGIN, 
+    "USE '$name' - permission denied"
+  ) unless ($self->_allowed_plugins_hash->{lc($name)});
+    
+  return $self->$orig($name,@args);
+};
+
+around 'filter' => sub {
+  my ($orig, $self, $name, @args) = @_;
+  
+  return $self->throw(
+    Template::Constants::ERROR_FILTER, 
+    "Load Filter '$name' - permission denied"
+  ) unless ($self->_allowed_filters_hash->{lc($name)});
+    
+  return $self->$orig($name,@args);
+};
+##################################################
+
+
 
 1;
