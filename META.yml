@@ -22,19 +22,21 @@ requires:
   CSS::Simple: 0
   CSS::Tiny: 0
   Carp: 0
-  Catalyst: 5.90002
+  Carp::Clan: 6.04
+  Catalyst: 5.90042
   Catalyst::Action: 0
-  Catalyst::Authentication::Store::DBIx::Class: 0
+  Catalyst::Action::RenderView: 0.16
+  Catalyst::Authentication::Store::DBIx::Class: 0.1505
   Catalyst::Controller: 0
   Catalyst::Controller::AutoAssets: 0.24
   Catalyst::Log: 0
   Catalyst::Model: 0
   Catalyst::Model::DBIC::Schema: 0
   Catalyst::Model::DBIC::Schema::Types: 0
-  Catalyst::Plugin::Authorization::Roles: 0
+  Catalyst::Plugin::Authorization::Roles: 0.09
   Catalyst::Plugin::AutoAssets: 0
-  Catalyst::Plugin::Session::State::Cookie: 0
-  Catalyst::Plugin::Session::Store::DBIC: 0
+  Catalyst::Plugin::Session::State::Cookie: 0.17
+  Catalyst::Plugin::Session::Store::DBIC: 0.14
   Catalyst::Utils: 0
   Catalyst::View: 0
   Catalyst::View::TT: 0
@@ -54,8 +56,9 @@ requires:
   Devel::StackTrace: 0
   Devel::StackTrace::AsHTML: 0
   Devel::StackTrace::WithLexicals: 0
+  Digest: 0
   Digest::MD5: 0
-  Digest::SHA1: 0
+  Digest::SHA1: 2.13
   Email::MIME: 0
   Email::MIME::CreateHTML: 0
   Email::MIME::CreateHTML::Resolver::LWP: 0
@@ -83,7 +86,7 @@ requires:
   JSON: 0
   JSON::PP: 0
   JSON::XS: 0
-  JavaScript::ExtJS::V3: 0
+  JavaScript::ExtJS::V3: v3.4.1
   MIME::Base64: 0
   MRO::Compat: 0
   Module::Find: 0
@@ -142,4 +145,4 @@ requires:
 resources:
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99017
+version: 0.99018

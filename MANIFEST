@@ -9,6 +9,8 @@ lib/Catalyst/Model/RapidApp/CoreSchema.pm
 lib/Catalyst/Plugin/RapidApp.pm
 lib/Catalyst/Plugin/RapidApp/AuthCore.pm
 lib/Catalyst/Plugin/RapidApp/AuthCore/Controller/Auth.pm
+lib/Catalyst/Plugin/RapidApp/AuthCore/PlugHook.pm
+lib/Catalyst/Plugin/RapidApp/CoreSchema.pm
 lib/Catalyst/Plugin/RapidApp/CoreSchemaAdmin.pm
 lib/Catalyst/Plugin/RapidApp/NavCore.pm
 lib/Catalyst/Plugin/RapidApp/NavCore/Controller.pm
@@ -410,7 +412,6 @@ share/assets/icons/pg.png
 share/assets/icons/pg_multi.png
 share/assets/icons/power_on-394.gif
 share/assets/icons/printer.png
-share/assets/icons/progress_green_blocks.gif
 share/assets/icons/rapidapp_icon_small.ico
 share/assets/icons/rapidapp_icon_small.png
 share/assets/icons/rdp_icon.png
@@ -579,6 +580,7 @@ share/assets/misc/images/leftTitleBG.png
 share/assets/misc/images/logoMain_small.png
 share/assets/misc/images/pencil_tiny.png
 share/assets/misc/images/powered_intellitree_footer.png
+share/assets/misc/images/progress_green_blocks.gif
 share/assets/misc/images/rapidapp_catalyst_logo.png
 share/assets/misc/images/rapidapp_icon_medium.png
 share/assets/misc/images/rapidapp_logo_small.png

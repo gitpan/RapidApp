@@ -68,6 +68,30 @@ __PACKAGE__->has_many(
 
 __PACKAGE__->load_components('+RapidApp::DBIC::Component::TableSpec');
 __PACKAGE__->TableSpec_m2m( roles => "user_to_roles", 'role');
+
+# ----
+# TODO/FIXME: This is ugly/global, but works. This virtual column
+# provides a column-based interface to set the password, optionally
+# passing it through a custom password hasher function. The ugly
+# part is that the password hasher is set on the class...
+# This is being set by Catalyst::Plugin::RapidApp::AuthCore
+__PACKAGE__->mk_classdata( 'password_hasher' );
+__PACKAGE__->password_hasher( sub { (shift) } ); # 'clear'
+__PACKAGE__->add_virtual_columns( set_pw => {
+	data_type => "varchar", 
+	is_nullable => 1, 
+	sql => "SELECT NULL",
+  set_function => sub {
+    my ($self,$pw) = @_;
+    if($pw && $pw ne '') {
+      my $pass = $self->password_hasher->($pw) || $pw;
+      $self->set_column( password => $pass );
+      $self->update;
+    }
+  }
+});
+# ----
+
 __PACKAGE__->apply_TableSpec;
 
 __PACKAGE__->TableSpec_set_conf( 
@@ -78,8 +102,29 @@ __PACKAGE__->TableSpec_set_conf(
 	display_column => 'username',
   priority_rel_columns => 1,
   columns => {
-    last_login_ts => { allow_edit => \0, allow_add => \0 },
-    disabled => { profiles => ['bool'] }
+    id            => { width => 40,   profiles => ['noedit'] },
+    username      => { width => 90,    },
+    password      => { width => 70, profiles => ['noedit']   },
+    full_name     => { width => 120, hidden => \1   },
+    
+    last_login_ts => { 
+      hidden => \1, # temp: hide only so it doesn't show between password and set_pw
+      width => 120,  allow_edit => \0, allow_add => \0  
+    },
+    
+    disabled      => { 
+      width => 60,  profiles => ['bool'], hidden => \1,
+      # Not implemented yet
+      no_column => \1, no_quick_search => \1, no_multifilter => \1
+    },
+    
+    disabled_ts   => { 
+      width => 120, hidden => \1,
+      # Not implemented yet   
+      no_column => \1, no_quick_search => \1, no_multifilter => \1
+    },
+    
+    set_pw        => { width => 130,    },
   }
 );
 
