@@ -4,6 +4,7 @@ META.yml
 Makefile.PL
 README
 README.md
+README.md.bak
 dist.ini
 lib/Catalyst/Model/RapidApp/CoreSchema.pm
 lib/Catalyst/Plugin/RapidApp.pm

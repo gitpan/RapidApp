@@ -55,6 +55,7 @@ my %WriteMakefileArgs = (
     "Cwd" => 0,
     "DBIx::Class" => "0.08250",
     "DBIx::Class::Core" => 0,
+    "DBIx::Class::PassphraseColumn" => "0.02",
     "DBIx::Class::ResultSet" => 0,
     "DBIx::Class::Schema" => 0,
     "Data::Dumper" => 0,
@@ -65,9 +66,8 @@ my %WriteMakefileArgs = (
     "Devel::StackTrace" => 0,
     "Devel::StackTrace::AsHTML" => 0,
     "Devel::StackTrace::WithLexicals" => 0,
-    "Digest" => 0,
     "Digest::MD5" => 0,
-    "Digest::SHA1" => "2.13",
+    "Digest::SHA1" => 0,
     "Email::MIME" => 0,
     "Email::MIME::CreateHTML" => 0,
     "Email::MIME::CreateHTML::Resolver::LWP" => 0,
@@ -152,7 +152,7 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "0.99018",
+  "VERSION" => "0.99019",
   "test" => {
     "TESTS" => ""
   }
