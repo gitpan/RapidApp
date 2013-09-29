@@ -457,23 +457,32 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 			}
 			return store.columns_map[name];
 		};
+    
+    store.isEditableColumn = function(name) {
+      return store.editable_columns_map[name] ? true : false;
+    };
 		
 		// ----
 		// New: track 'loaded_columns' from the server (see metaData in DataStore2)
 		store.on('metachange',function(ds,meta){
 
 			if(meta.loaded_columns){
+        // New: track individual editable columns:
+        store.editable_columns_map = {};
 				var loaded_map = {}, edit_count = 0;
 				Ext.each(meta.loaded_columns,function(f){
 					loaded_map[f] = true; 
-					if(store.api.update) { 
+					if(store.api.update) {
 						var column = store.getColumnConfig(f);
 						if(!column){ return; }
 						var editable = (column.editor && !column.no_column);
 						if(typeof column.allow_edit != 'undefined' && !column.allow_edit) {
 							editable = false;
 						}
-						if(editable || column.allow_edit || column.allow_batchedit) { edit_count++; }
+						if(editable || column.allow_edit || column.allow_batchedit) { 
+              edit_count++;
+              store.editable_columns_map[f] = true;
+            }
 					}
 				},this);
 				store.loaded_columns_map = loaded_map;
@@ -541,8 +550,8 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 		
 		store.hasAnyPendingChanges = function() {
 			var pend = false;
-			// If the store has no update api, it can't have any pending changes
-			if(!store.api.update) { return false; }
+			// If the store has no update or destroy api, it can't have any pending changes
+			if(!store.api.update && !store.api.destroy) { return false; }
 			store.eachTiedChild(function(s) {
 				if(s.hasPendingChanges()) { pend = true; }
 			});
@@ -927,6 +936,12 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 			if (!showtext && cnf.text) {
 				delete cnf.text;
 			}
+      
+      // Added for Github Issue #21 - set the overflow text to
+      // match the tooltip when showtext (for the button) is false
+      if(!showtext && cnf.tooltip) {
+        cnf.overflowText = cnf.tooltip;
+      }
 			
 			return new Ext.Button(cnf);
 		};
@@ -1015,7 +1030,11 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 			});
 		});
 		
-		store.on('exception',store.undoChanges,store);
+    // Removed this exception hook because it is redundant and can cause
+    // problems when rolling back certain changes. The store already fully
+    // handles reverting itself when a save/persist operation fails.
+    // Fixes Github Issue #11
+    //store.on('exception',store.undoChanges,store);
 	},
 	
 	// Only applies to Editor Grids implementing the 'beforeedit' event
@@ -1214,6 +1233,8 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 				return btn;
 			},
 			
+      // Note: this is *not* the refresh button in the grid toolbar/pager because
+      // it already provides its own
 			reload: function(cnf,cmp,showtext) {
 				
 				return cmp.store.buttonConstructor(Ext.apply({
@@ -1244,11 +1265,8 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 				var title_parent = cmp.findParentBy(function(c){
 					return (c.title && c.setTitle)  ? true : false;
 				},this);
-				var modified_suffix = '&nbsp;' +
-					// #c00000 (shade of red) is the same color as 'dirty.gif'  (dirty cell corner triangle icon)
-					'<span style="font-weight:bold;font-size:1.2em;color:#c00000;display:inline;line-height:15px;">' +
-						'*' +
-					'</span>';
+
+				var modified_suffix = '&nbsp;<span class="ra-tab-dirty-flag">*</span>';
 
 				cmp.cascade(function(){
 					if(!this.store || !this.store.addTrackedToggleFunc){ return; }

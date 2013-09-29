@@ -53,6 +53,10 @@ sub DEFAULT_PROFILES {{
 			editor => { xtype => 'textfield', minWidth => 80, minHeight => 22 },
 			summary_functions => \@text_summary_funcs
 		},
+    
+    relcol => {
+      width => 175
+    },
 		
 		nullable => {
 			editor => { allowBlank => \1, plugins => [ 'emptytonull' ] }
@@ -170,6 +174,9 @@ sub DEFAULT_PROFILES {{
 			 editor => { xtype => 'numberfield', style => 'text-align:left;' },
 			 renderer => ['Ext.ux.RapidApp.num2pct'],
 			 summary_functions => \@number_summary_funcs
+		},
+		noadd => {
+			allow_add => \0,
 		},
 		noedit => {
 			editor => '',

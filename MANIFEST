@@ -378,6 +378,7 @@ share/assets/icons/gears_24x24.png
 share/assets/icons/gray_down.png
 share/assets/icons/gray_down_with_pencil.png
 share/assets/icons/gray_pencil.png
+share/assets/icons/gray_pencil_tiny.png
 share/assets/icons/group.png
 share/assets/icons/help.png
 share/assets/icons/home.png
@@ -495,6 +496,7 @@ share/assets/js/055-Ext.ux.form.HtmlEditor.Word.js
 share/assets/js/060-SuperBoxSelect.js
 share/assets/js/065-miframe.js
 share/assets/js/070-gridsummary.js
+share/assets/js/075-Layout.js
 share/assets/js/080-DataStore.js
 share/assets/js/081-Plugin.js
 share/assets/js/082-HtmlEditor.js

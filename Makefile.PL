@@ -58,6 +58,7 @@ my %WriteMakefileArgs = (
     "DBIx::Class::PassphraseColumn" => "0.02",
     "DBIx::Class::ResultSet" => 0,
     "DBIx::Class::Schema" => 0,
+    "DBIx::Class::Schema::Loader" => "0.07036",
     "Data::Dumper" => 0,
     "DateTime" => 0,
     "DateTime::Format::Flexible" => 0,
@@ -152,7 +153,7 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "0.99019",
+  "VERSION" => "0.99020",
   "test" => {
     "TESTS" => ""
   }

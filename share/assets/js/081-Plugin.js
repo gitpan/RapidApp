@@ -386,7 +386,7 @@ Ext.ux.RapidApp.Plugin.GridQuickSearch = Ext.extend(Ext.util.Observable, {
 	/**
 	 * @cfg {Number} width Width of input field in pixels (defaults to 100)
 	 */
-	,width:100
+	,width:250
 
 	/**
 	 * @cfg {String} xtype xtype is usually not used to instantiate this plugin but you have a chance to identify it
@@ -1725,9 +1725,8 @@ Ext.ux.RapidApp.Plugin.AppGridSummary = Ext.extend(Ext.ux.grid.GridSummary, {
 		}
 	},
 	
-	hdIcos: {},
-	
 	updateColumnHeadings: function () {
+    this.hdIcos = this.hdIcos || {};
 		var view = this.grid.getView(),
 			hds, i, len, summary_data;
 		if (view.mainHd) {
@@ -2034,6 +2033,12 @@ Ext.ux.RapidApp.Plugin.AppGridAutoColWidth = Ext.extend(Ext.util.Observable,{
 				cm.suspendEvents();
 				var col_count = cm.getColumnCount();
 				for (var i = 0; i < col_count; i++) {
+          var colid = cm.getColumnId(i);
+          var column = cm.getColumnById(colid);
+          // Skip hidden columns unless autoSizeHidden is true:
+          if(!this.autosize_hidden && column.hidden) {
+            continue;
+          }
 					cm.setColumnWidth(i, size);
 				}
 				cm.resumeEvents();

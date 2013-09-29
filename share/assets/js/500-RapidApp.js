@@ -3333,9 +3333,20 @@ Ext.ux.RapidApp.menu.ToggleSubmenuItem = Ext.extend(Ext.menu.Item,{
 					this.origMenu.show.defer(100,this.origMenu,[btn.getEl(),'tr?']);
 				}
 			}
+      
+      this.on('afterrender',this.hookParentMenu,this);
 		}
 		Ext.ux.RapidApp.menu.ToggleSubmenuItem.superclass.initComponent.call(this);
 	},
+  
+  // Manually hook into the parent menu and hide when it does. We broke
+  // ties with the parent menu on purpose to achieve the toggle functionality
+  // so we need to manually reconnect with the hide event
+  hookParentMenu: function() {
+    if(this.parentMenu) {
+      this.parentMenu.on('hide',this.origMenu.hide,this.origMenu);
+    }
+  },
 	
 	onSubmenuShow: function() {
 		this.setShowPending(false);
@@ -3744,8 +3755,11 @@ Ext.ux.RapidApp.PagingToolbar = Ext.extend(Ext.PagingToolbar,{
 
 	allowChangePageSize: true,
 	maxPageSize: 500,
+  enableOverflow: true,
+
 
 	initComponent: function() {
+    this.layout = 'ra_toolbar';
 
 		if(this.allowChangePageSize) {
 
@@ -3772,9 +3786,13 @@ Ext.ux.RapidApp.PagingToolbar = Ext.extend(Ext.PagingToolbar,{
 									var size = field.getValue();
 									if (size != paging.pageSize) {
 										paging.pageSize = size;
-										var btn = field.ownerCt.ownerCt;
-										btn.setText(size + suffix_str);
+                    paging.pageSizeButton.setText(size + suffix_str);
 										paging.doLoad();
+                    var ovrMenu = field.ownerCt.parentMenu;
+                    // Handle special overflow case: hide the menu
+                    if(ovrMenu) {
+                      ovrMenu.hide();
+                    }
 									}
 									field.ownerCt.hide();
 								}
@@ -3790,9 +3808,7 @@ Ext.ux.RapidApp.PagingToolbar = Ext.extend(Ext.PagingToolbar,{
 			var orig_text = this.beforePageText;
 			if(paging.pageSize) { orig_text = paging.pageSize + suffix_str; }
 			
-			//this.beforePageText = {
-			var page_btn = {
-				xtype: 'button',
+			this.pageSizeButton = new Ext.Button({
 				text: orig_text,
 				style: 'font-size:.9em;',
 				menu: {
@@ -3812,7 +3828,7 @@ Ext.ux.RapidApp.PagingToolbar = Ext.extend(Ext.PagingToolbar,{
 						}
 					}
 				}
-			};
+			});
 		}
 		
 		
@@ -3822,34 +3838,104 @@ Ext.ux.RapidApp.PagingToolbar = Ext.extend(Ext.PagingToolbar,{
 		// place the query time label immediately after 'refresh'
 		this.prependButtons = false;
 		this.items = this.items || [];
-		paging.queryTimeLabel = new Ext.form.Label({
-			html: '',
-			style: 'color:#b3b3b3;font-size:0.85em;padding-left:10px;' // light gray
+		paging.queryTimeLabel = new Ext.Toolbar.TextItem({
+			text: '',
+      cls: 'ra-grid-tb-query-time'
 		});
 		this.items.unshift(paging.queryTimeLabel);
 		
 		Ext.ux.RapidApp.PagingToolbar.superclass.initComponent.call(this);
 		
-		this.insert(this.items.getCount() - 1,page_btn,' ');
+    this.insert(this.items.getCount() - 1,this.pageSizeButton,' ');
 		
 		this.store.on('load',function(store) {
 			if(store.reader && store.reader.jsonData) {
 				//'query_time' is returned from the server, see DbicLink2
 				var query_time = store.reader.jsonData.query_time;
 				if(query_time) {
-					paging.queryTimeLabel.setText('query time ' + query_time);
+					paging.queryTimeLabel.setText('query&nbsp;time ' + query_time);
 				}
 				else {
 					paging.queryTimeLabel.setText('');
 				}
 			}
+      this.autoSizeInputItem();
 		},this);
 		
 		this.store.on('exception',function(store) {
 			paging.queryTimeLabel.setText('--');
 		},this);
 
-	}
+    // --- NEW: update paging counts in-place (Github Issue #18)
+    this.store.on('add',function(store,records,index) {
+      this.store.totalLength = this.store.totalLength + records.length;
+      this.updateInfo();
+    },this);
+
+    this.store.on('remove',function(store,record,index) {
+      this.store.totalLength--;
+      this.updateInfo();
+    },this);
+    // ---
+
+    this.inputItem.on('afterrender',this.autoSizeInputItem,this);
+    this.inputItem.on('keydown',this.autoSizeInputItem,this,{buffer:20});
+    this.inputItem.on('blur',this.autoSizeInputItem,this);
+    this.on('change',this.onPageDataChange,this);
+	},
+
+  doRefresh: function() {
+    // Added for Github Issue #13
+    // Special handling for DataStorePlus cached total counts. Clear
+    // it whenever the user manually clicks 'Refresh' in the toolbar
+    if(this.store.cached_total_count) {
+      delete this.store.cached_total_count;
+    }
+    return Ext.ux.RapidApp.PagingToolbar.superclass.doRefresh.apply(this,arguments);
+  },
+
+  // NEW: override private method 'updateInfo()' to commify values 
+  // (Added for Github Issue #15)
+  updateInfo : function(){
+    if(this.displayItem){
+      var count = this.store.getCount();
+      var msg = count == 0 ?
+        this.emptyMsg :
+        String.format(
+          this.displayMsg,
+          Ext.util.Format.number(this.cursor+1,'0,000'), 
+          Ext.util.Format.number(this.cursor+count,'0,000'), 
+          Ext.util.Format.number(this.store.getTotalCount(),'0,000')
+        );
+      this.displayItem.setText(msg);
+    }
+  },
+
+  // Sets the width of the input (current page) dynamically
+  autoSizeInputItem: function() {
+    var val = this.inputItem.getValue();
+    // 14px wide, plus 6px for each character:
+    var size = 14 + (6 * [val].join('').length);
+    if (size < 20) { size = 20; }
+    // Max width 60px (enough for 8 digits)
+    if (size > 60) { size = 60; }
+    this.inputItem.setWidth(size);
+    this.syncSize();
+  },
+
+  onPageDataChange: function(tb,d) {
+    // Set the "afterPageText" again, but this time commified:
+    this.afterTextItem.setText(String.format(
+      this.afterPageText,
+      Ext.util.Format.number(d.pages,'0,000')
+    ));
+
+    // Update the max value of the input item:
+    this.inputItem.setMaxValue(d.pages);
+    
+    this.syncSize();
+  }
+
 });
 Ext.reg('rapidapp-paging',Ext.ux.RapidApp.PagingToolbar);
 

@@ -33,12 +33,15 @@ my $default_data_type_profiles = {
 	tinytext 	=> [ 'text' ],
 	varchar 	=> [ 'text' ],
 	char 		=> [ 'text' ],
+	nvarchar 	=> [ 'text' ],
+	nchar 		=> [ 'text' ],
 	float		=> [ 'number' ],
 	integer		=> [ 'number', 'int' ],
 	tinyint		=> [ 'number', 'int' ],
 	mediumint	=> [ 'number', 'int' ],
 	bigint		=> [ 'number', 'int' ],
 	decimal		=> [ 'number' ],
+	numeric		=> [ 'number' ],
 	datetime	=> [ 'datetime' ],
 	timestamp	=> [ 'datetime' ],
 	date		=> [ 'date' ],
@@ -250,7 +253,7 @@ sub create_result_TableSpec {
 		my @profiles = ();
 		
 		push @profiles, $info->{is_nullable} ? 'nullable' : 'notnull';
-    push @profiles, 'noedit' if ($info->{is_auto_increment});
+    push @profiles, 'noadd','noedit' if ($info->{is_auto_increment});
 		
 		my $type_profile = $data_types->{$info->{data_type}} || ['text'];
 		$type_profile = [ $type_profile ] unless (ref $type_profile);
@@ -449,6 +452,10 @@ sub default_TableSpec_cnf_columns {
 					$cols->{$col}->{open_url_multi_rs_join_name} = 
 						$self->TableSpec_related_get_set_conf($col,'open_url_multi_rs_join_name') || 'me';
 				}
+        
+        # New: add the 'relcol' profile to relationship columns:
+        $cols->{$col}->{profiles} ||= [];
+        push @{$cols->{$col}->{profiles}}, 'relcol';
 			}
 			next;
 		}
@@ -458,7 +465,7 @@ sub default_TableSpec_cnf_columns {
 		my @profiles = ();
 			
 		push @profiles, $info->{is_nullable} ? 'nullable' : 'notnull';
-    push @profiles, 'noedit' if ($info->{is_auto_increment});
+    push @profiles, 'noadd','noedit' if ($info->{is_auto_increment});
 		
 		my $type_profile = $data_types->{$info->{data_type}} || ['text'];
 		$type_profile = [ $type_profile ] unless (ref $type_profile);

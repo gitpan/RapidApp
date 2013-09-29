@@ -69,7 +69,7 @@ Ext.ux.MultiFilter.Plugin = Ext.extend(Ext.util.Observable,{
 		this.filtersBtn = new Ext.Button({
 			text: 'Filters',
 			handler: function(btn) {
-				var win = btn.ownerCt.ownerCt.multifilter.showFilterWindow();
+				var win = grid.multifilter.showFilterWindow();
 			},
 			hidden: grid.hide_multifilter_button ? true: false
 		});
@@ -250,6 +250,13 @@ Ext.ux.MultiFilter.Plugin = Ext.extend(Ext.util.Observable,{
 				win.multifilter.updateFilterBtn();
 				
 				win.close();
+        
+        // Added for Github Issue #20 (and copied from Quick Search code)
+        // clear start (necessary if we have paging) - resets to page 1
+        if(store.lastOptions && store.lastOptions.params) {
+          store.lastOptions.params[store.paramNames.start] = 0;
+        }
+        
 				store.reload();
 			}
 		},
@@ -271,14 +278,29 @@ Ext.ux.MultiFilter.Plugin = Ext.extend(Ext.util.Observable,{
 			buttons: hbuttons
 		});
 		
+    // -- NEW: Set the window size taking the active 
+    // browser size into account
+    var winWidth = 750;
+    var winHeight = 500;
+    var browserSize = Ext.getBody().getViewSize();
+    if (browserSize.width < winWidth) {
+      winWidth = browserSize.width - 20;
+    }
+    if (browserSize.height < winHeight) {
+      winHeight = browserSize.hight - 20;
+    }
+    if(winWidth < 300) { winWidth = 300 }
+    if(winHeight < 150) { winHeight = 150 }
+    // --
+    
 		var win = new Ext.Window({
 		
 			//id: 'mywin',
 			multifilter: this,
 			title: 'MultiFilter',
 			layout: 'anchor',
-			width: 750,
-			height: 500,
+			width: winWidth,
+			height: winHeight,
 			closable: true,
 			modal: true,
 			

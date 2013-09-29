@@ -22,12 +22,10 @@ Ext.ns('Ext.ux.RapidApp');
 Ext.ux.RapidApp.HistoryInit = function() {
 	Ext.History.init();
 	Ext.History.on('change', Ext.ux.RapidApp.HashNav.handleHashChange);
-  Ext.ux.RapidApp.HashNav.INITIALIZED = true;
 }
 
 Ext.ux.RapidApp.HashNav = {
 	
-  INITIALIZED: false,
 	INIT_LOCATION_HASH: window.location.hash,
 	INIT_TITLE: document.title,
 	ignoreHashChange: false,
@@ -126,6 +124,10 @@ Ext.ux.RapidApp.HashNav = {
 			window.location.hash = hashpath;
 		}
 	},
+  
+  clearHashpath: function() {
+    window.location.hash = '';
+  },
 	
 	handleHashChange: function(hashpath) {
     if(Ext.ux.RapidApp.HashNav.ignoreHashChange) {

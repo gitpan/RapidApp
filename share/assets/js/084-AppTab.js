@@ -53,6 +53,11 @@ Ext.ux.RapidApp.AppTab.TabPanel = Ext.extend(Ext.TabPanel, {
 				var load = tab.autoLoad;
 				Ext.ux.RapidApp.HashNav.setHashpath(load);
 			}
+      else {
+        // Only happens when all tabs are closed (which means
+        // there is no dashboard - or it has been made closable)
+        Ext.ux.RapidApp.HashNav.clearHashpath();
+      }
 			
 			var title = tab ? tab.title : null;
 			Ext.ux.RapidApp.HashNav.updateTitle(title);
@@ -479,7 +484,14 @@ Ext.ux.RapidApp.AppTab.AppGrid2Def = {
 			refresh: function(v) {
 				v.scroller.dom.scrollTop = v.scrollTop + 
 				(v.scrollTop == 0 ? 0 : v.scroller.dom.scrollHeight - v.scrollHeight);
-			}
+			},
+      rowsinserted: function(v,fNdx,lNdx) {
+        // Scroll new/added rows into view (Github Issue #19):
+        v.focusCell(lNdx,0);
+        var sm = v.grid.getSelectionModel();
+        // Select/highlight the new rows:
+        sm.selectRange(fNdx,lNdx);
+      }
 		}
 		// --
 	},
@@ -731,6 +743,18 @@ Ext.ux.RapidApp.AppTab.AppGrid2Def = {
 			this.columns[0].hidden = false;
 		}
 		// --
+    
+    var tbar_items = [];
+    if(Ext.isArray(this.tbar)) { tbar_items = this.tbar; }
+    
+    this.tbar = {
+      xtype: 'toolbar',
+      // TODO: enable overflow on top toolbar. 
+      //   The Quick Search box will need to be adapted 
+      //   to work in the overflow menu before this can be set
+      //enableOverflow: true,
+      items: tbar_items
+    };
 		
 		var bbar_items = [];
 		if(Ext.isArray(this.bbar)) { bbar_items = this.bbar; }
@@ -775,7 +799,6 @@ Ext.ux.RapidApp.AppTab.AppGrid2Def = {
 				//iconCls:'ra-icon-zoom',
 				autoFocus:false,
 				mode: 'local', // local or remote
-				width: 250,
 				position: 'top'
 			};
 
@@ -925,6 +948,15 @@ Ext.ux.RapidApp.AppTab.AppGrid2Def = {
 		else {
 			this.store.load({ params: store_load_parms });
 		}
+    
+    // -- Hooks to update the edit headers (pencil icon in column headers)
+    this.updateEditHeaders();
+    this.on('reconfigure',this.updateEditHeaders,this);
+    this.getView().on('refresh', this.updateEditHeaders, this);
+    if(this.ownerCt) {
+      this.ownerCt.on('show',this.updateEditHeaders,this);
+    }
+    // --
 		
 		Ext.ux.RapidApp.AppTab.AppGrid2.superclass.onRender.apply(this, arguments);
 	},
@@ -1072,7 +1104,34 @@ Ext.ux.RapidApp.AppTab.AppGrid2Def = {
 				optionsMenu.on('beforeshow',item.hideShow,item);
 			}
 		},this);
-	}
+	},
+  
+  editHeaderIcoDomCfg: {
+		tag: 'div',
+		cls: 'ra-icon-gray-pencil-tiny',
+		style: 'position:absolute;right:1px;top:1px;width:7px;height:7px;'
+	},
+  
+  updateEditHeaders: function() {
+    this.hdEdIcos = this.hdEdIcos || {};
+    var view = this.getView(),hds, i, len;
+    if (view.mainHd) {
+
+      hds = view.mainHd.select('td');
+      for (i = 0, len = view.cm.config.length; i < len; i++) {
+        var itm = hds.item(i);
+        
+        if(this.hdEdIcos[i]) { this.hdEdIcos[i].remove(); delete this.hdEdIcos[i]; }
+        var column = view.cm.config[i];
+        var editable = this.getStore().isEditableColumn(column.name);
+        if (editable) {
+          //console.dir([itm.child('div')]);
+          this.hdEdIcos[i] = itm.child('div').insertFirst(this.editHeaderIcoDomCfg);
+        }
+      }
+    }
+  
+  }
 };
 
 Ext.ux.RapidApp.AppTab.AppGrid2 = Ext.extend(Ext.grid.GridPanel,Ext.ux.RapidApp.AppTab.AppGrid2Def);
@@ -1187,13 +1246,21 @@ Ext.ux.RapidApp.AppTab.AppGrid2.excelExportHandler = function(cmp,url,all_pages,
 			options.params.export_filename = export_filename;
 			
 			var timeout = 900000; // 15-minutes
-
-			if(Ext.isGecko) { // FireFox
+      
+      // ---------------
+      // 2013-09-21 by HV:
+      // CUSTOM FIREFOX HANDLING BYPASSED/DISABLED (See Github Issue #7)
+      //  This interactive mode is better, but only ever worked in
+      //  FireFox, but recently, it has stopped working there too, so
+      //  this code is just being bypassed for now, but I'm leaving the
+      //  code here for reference later on
+			if(false && Ext.isGecko) { // FireFox (<-- now always false)
 				// Interactive window download:
 				return Ext.ux.RapidApp.winDownload(
 					url,options.params,"Exporting data to Excel...",timeout
 				);
 			}
+      // ---------------
 			else {
 				// Background download, since non-FF browsers can't detect download complete and
 				// close the window:

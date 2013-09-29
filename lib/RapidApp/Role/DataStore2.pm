@@ -26,9 +26,17 @@ has 'persist_immediately' => ( is => 'ro', isa => 'HashRef', default => sub{{
 	destroy	=> \0
 }});
 
+# use_add_form/use_edit_form: 'tab', 'window' or undef
+has 'use_add_form', is => 'ro', isa => 'Maybe[Str]', lazy => 1, default => undef;
+has 'use_edit_form', is => 'ro', isa => 'Maybe[Str]', lazy => 1, default => undef;
+has 'autoload_added_record', default => sub {
+  my $self = shift;
+  # Default to the same value as 'use_add_form'
+  return $self->use_add_form ? 1 : 0;
+}, is => 'ro', isa => 'Bool', lazy => 1;
+
 has 'allow_batch_update', is => 'ro', isa => 'Bool', default => 1;
 has 'batch_update_max_rows', is => 'ro', isa => 'Int', default => 500;
-
 has 'confirm_on_destroy', is => 'ro', isa => 'Bool', default => 1;
 
 # not implimented yet:
@@ -160,6 +168,9 @@ after 'BUILD' => sub {
 	$self->apply_extconfig(
 		persist_all_immediately => \scalar($self->persist_all_immediately),
 		persist_immediately => $self->persist_immediately,
+    use_add_form => $self->use_add_form,
+    use_edit_form => $self->use_edit_form,
+    autoload_added_record => $self->autoload_added_record ? \1 : \0,
 		cache_total_count => $self->cache_total_count ? \1 : \0,
 		confirm_on_destroy => $self->confirm_on_destroy ? \1 : \0
 	);
@@ -298,6 +309,7 @@ sub get_add_edit_form_items {
 		$field->{header} = $Cnf->{header} if(defined $Cnf->{header});
 		$field->{header} = $colname unless (defined $field->{header} and $field->{header} ne '');
 		$field->{fieldLabel} = $field->{header};
+    $field->{anchor} = '-20';
 		
 		push @items, $field;
 	}
