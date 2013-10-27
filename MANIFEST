@@ -184,6 +184,9 @@ lib/RapidApp/JSON/ScriptWithData.pm
 lib/RapidApp/JSONFunc.pm
 lib/RapidApp/Layout/BannerBody.pm
 lib/RapidApp/Log.pm
+lib/RapidApp/Manual.pod
+lib/RapidApp/Manual/Assets.pod
+lib/RapidApp/Manual/TableSpec.pod
 lib/RapidApp/Model.pm
 lib/RapidApp/ModuleDispatcher.pm
 lib/RapidApp/MooseX/ClassAttrSugar.pm
