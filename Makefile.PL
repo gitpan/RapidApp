@@ -108,6 +108,7 @@ my %WriteMakefileArgs = (
     "Moose::Role" => 0,
     "Moose::Util" => 0,
     "Moose::Util::TypeConstraints" => 0,
+    "MooseX::MarkAsMethods" => "0.15",
     "MooseX::NonMoose" => 0,
     "MooseX::Traits" => 0,
     "MooseX::Types::Moose" => 0,
@@ -153,7 +154,7 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "0.99021",
+  "VERSION" => "0.99022",
   "test" => {
     "TESTS" => ""
   }

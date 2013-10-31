@@ -99,6 +99,7 @@ requires:
   Moose::Role: 0
   Moose::Util: 0
   Moose::Util::TypeConstraints: 0
+  MooseX::MarkAsMethods: 0.15
   MooseX::NonMoose: 0
   MooseX::Traits: 0
   MooseX::Types::Moose: 0
@@ -146,4 +147,4 @@ requires:
 resources:
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99021
+version: 0.99022
