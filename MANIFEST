@@ -328,7 +328,6 @@ share/assets/icons/chart_curve.png
 share/assets/icons/checkbox.png
 share/assets/icons/checkbox_clear.png
 share/assets/icons/checkbox_no.png
-share/assets/icons/checkbox_yes.png
 share/assets/icons/checkmark.png
 share/assets/icons/checkmark_12x12.png
 share/assets/icons/clock_run.png
@@ -548,6 +547,7 @@ share/assets/misc/images/bullet_arrow_right_sm.png
 share/assets/misc/images/bullet_arrow_up_sm.png
 share/assets/misc/images/bullet_disk.png
 share/assets/misc/images/catalyst_logo.png
+share/assets/misc/images/checkbox_yes.png
 share/assets/misc/images/clock_run_24x24.png
 share/assets/misc/images/cornerBlackBottomLeft.png
 share/assets/misc/images/cornerBlackBottomRight.png
