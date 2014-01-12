@@ -7,6 +7,10 @@ Ext.ns('Ext.ux.RapidApp');
 
 // This should be set dynamically by the server:
 Ext.ux.RapidApp.VERSION = Ext.ux.RapidApp.VERSION || 0;
+
+// Window Group for Custom Prompts to make them higher than other windows and load masks
+Ext.ux.RapidApp.CustomPromptWindowGroup = new Ext.WindowGroup();
+Ext.ux.RapidApp.CustomPromptWindowGroup.zseed = 20050;
 	
 /* Global Server Event Object */
 Ext.ux.RapidApp.EventObjectClass = Ext.extend(Ext.util.Observable,{
@@ -161,7 +165,8 @@ Ext.ux.RapidApp.errMsgHandler = function(title,msg,as_text) {
 	var body = as_text ? '<pre>' + Ext.util.Format.nl2br(msg) + '</pre>' : msg;
 	
 	win = new Ext.Window({
-		title: 'Exception',
+		manager: Ext.ux.RapidApp.CustomPromptWindowGroup,
+    title: 'Exception',
 		width: 600,
 		height: 400,
 		modal: true,
@@ -438,10 +443,6 @@ Ext.ux.RapidApp.handleServerCallBack = function(headerdata) {
 	return func();
 }
 
-// Window Group for Custom Prompts to make them higher than other windows and load masks
-Ext.ux.RapidApp.CustomPromptWindowGroup = new Ext.WindowGroup();
-Ext.ux.RapidApp.CustomPromptWindowGroup.zseed = 20050;
-
 Ext.ux.RapidApp.handleCustomPrompt = function(headerdata,success_callback) {
 
 	var win;
@@ -671,6 +672,7 @@ Ext.ux.RapidApp.ReAuthPrompt = function(success_callback) {
 	};
 
 	Ext.ux.RapidApp.WinFormPost({
+    manager: Ext.ux.RapidApp.CustomPromptWindowGroup,
 		title: "Session Expired",
 		height: 220,
 		width: 300,
@@ -1150,7 +1152,9 @@ Ext.ux.RapidApp.WinFormPost
  * @cfg {Function} success success callback function
  * @cfg {Function} failure failure callback function
  * @cfg {Boolean} eval_response if true the response will be evaled
-
+ * @cfg {Boolean} disableBtn disables the button once clicked - note:
+                             uncaught exceptions from the server will
+                             cause the button to never be re-enabled
 */
 Ext.ns('Ext.ux.RapidApp.WinFormPost');
 Ext.ux.RapidApp.WinFormPost = function(cfg) {
@@ -1200,13 +1204,65 @@ Ext.ux.RapidApp.WinFormPost = function(cfg) {
 		
 		if (cfg.eval_response && response.responseText) { return eval(response.responseText); }
 	};
+  
+  var Btn;
+  Btn = new Ext.Button({
+    text	: cfg.submitBtnText,
+    handler	: function(btn) {
+      if(cfg.disableBtn) {
+        btn.setDisabled(true);
+        btn.setText('Wait...');
+      }
+      
+      var form = Ext.getCmp(formId).getForm();
+
+      if (cfg.useSubmit) {
+        return form.submit({
+          url: cfg.url,
+          params: cfg.params,
+          success: success_fn,
+          failure: failure_fn
+        });
+      }
+      else {
+
+        var values;
+        if (cfg.noRaw) {
+          values = form.getFieldValues();
+        }
+        else {
+          values = form.getValues();
+        }
+
+        var params = cfg.params;
+        if (cfg.encode_values) {
+          params[cfg.valuesParamName] = Ext.util.JSON.encode(values);
+        }
+        else {
+          for (i in values) {
+            if(!params[i]) { params[i] = values[i]; }
+          }
+        }
+
+        return Ext.Ajax.request({
+          url: cfg.url,
+          params: params,
+          success: success_fn,
+          failure: failure_fn
+        });
+      }
+    }
+  });
 
 	var failure_fn = function(response,options) {
-		if (cfg.failure) { cfg.failure.apply(scope,arguments); }
-	};
+    // Re-enable the button (only applies with disableBtn option)
+    Btn.setDisabled(false);
+    Btn.setText(cfg.submitBtnText);
+    if (cfg.failure) { cfg.failure.apply(scope,arguments); }
+  };
 
 	var win = new Ext.Window({
-		manager: Ext.ux.RapidApp.CustomPromptWindowGroup,
+		manager: cfg.manager,
     title: cfg.title,
 		id: winId,
 		layout: 'fit',
@@ -1223,53 +1279,7 @@ Ext.ux.RapidApp.WinFormPost = function(cfg) {
 			fileUpload: cfg.fileUpload,
 			baseParams: cfg.baseParams,
 			buttons: [
-				{
-					text	: cfg.submitBtnText,
-					handler	: function(btn) {
-						if(cfg.disableBtn) {
-							btn.setDisabled(true);
-							btn.setText('Wait...');
-						}
-						
-						var form = Ext.getCmp(formId).getForm();
-
-						if (cfg.useSubmit) {
-							return form.submit({
-								url: cfg.url,
-								params: cfg.params,
-								success: success_fn,
-								failure: failure_fn
-							});
-						}
-						else {
-
-							var values;
-							if (cfg.noRaw) {
-								values = form.getFieldValues();
-							}
-							else {
-								values = form.getValues();
-							}
-
-							var params = cfg.params;
-							if (cfg.encode_values) {
-								params[cfg.valuesParamName] = Ext.util.JSON.encode(values);
-							}
-							else {
-								for (i in values) {
-									if(!params[i]) { params[i] = values[i]; }
-								}
-							}
-
-							return Ext.Ajax.request({
-								url: cfg.url,
-								params: params,
-								success: success_fn,
-								failure: failure_fn
-							});
-						}
-					}
-				},
+				Btn,
 				{
 					text		: 'Cancel',
 					handler	: cancel_fn
@@ -1763,10 +1773,25 @@ Ext.ux.AutoPanel = Ext.extend(Ext.Panel, {
 			) { return; }
 			// ---
 			
-			var retry_text = 'Please try again later.<br><br>' +
-			 '<span style="font-size:.7em;">' +
-			 '<i>If you continue to receive this message, please contact your ' +
-			 'System Administrator.</i></span>';
+      var retry_text = [
+       'Please try again later.&nbsp;&nbsp;',
+       '<span',
+          'class="with-icon ra-icon-refresh ra-autopanel-reloader"',
+          'style="display:inline;vertical-align:baseline;padding-left:20px;"',
+       '>Click to Retry...</span>',
+       '<div style=height:20px;"></div>',
+       '<span style="font-size:.7em;">',
+       '<i>If you continue to receive this message, please contact your ',
+       'System Administrator.</i></span>',
+       '<div class="retry-foot">',
+        '<center>',
+          '<span',
+            'class="with-icon ra-icon-refresh-24x24 ra-autopanel-reloader"',
+            'style="font-size:1.5em;display:inline;vertical-align:baseline;padding-left:40px;"',
+          '>Try Again</span>',
+        '</center>',
+       '</div>'
+      ].join(' ');
 			
 			var title = 'Load Request Failed:';
 			var msg = '<div style="padding:10px;font-size:1.3em;color:navy;">&nbsp;&nbsp;' +
@@ -1809,6 +1834,17 @@ Ext.ux.AutoPanel = Ext.extend(Ext.Panel, {
       
       this.on('resize',this.setSafesizeClasses,this);
       this.setSafesizeClasses();
+      
+      // Listen for clicks on custom 'ra-autopanel-reloader' elements
+      // to fire reload of the panel. This provides inline access to
+      // this function within the html/content of the panel. 
+      // (Added for Gitbut Issue #24)
+      thisEl.on('click',function(e,t,o) {
+        var target = e.getTarget(null,null,true);
+        if(target && target.hasClass('ra-autopanel-reloader')) {
+        this.reload();
+        }
+      }, this);
       
 		},this);
 		// Allowing highlighting within the panel once loading is complete:
@@ -1962,7 +1998,7 @@ Ext.ux.AutoPanel = Ext.extend(Ext.Panel, {
 		opt = Ext.apply({
 			tabTitle: 'Load Failed',
 			tabIconCls: 'ra-icon-cancel',
-			html: '<div class="ra-autopanel-error">' +
+			html: '<div class="ra-autopanel-error" >' +
 				'<div class="ra-exception-heading">' + title + '</div>' +
 				'<div class="msg">' + msg + '</div>' +
 			'</div>'

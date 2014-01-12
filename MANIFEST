@@ -48,8 +48,6 @@ lib/RapidApp/AppGrid2/Role/GridSelector.pm
 lib/RapidApp/AppGridSelector.pm
 lib/RapidApp/AppHtml.pm
 lib/RapidApp/AppListView.pm
-lib/RapidApp/AppMaster-bak.pm
-lib/RapidApp/AppMaster.pm
 lib/RapidApp/AppMimeIframe.pm
 lib/RapidApp/AppNavTree.pm
 lib/RapidApp/AppPageViewer.pm

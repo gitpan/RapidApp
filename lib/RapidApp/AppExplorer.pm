@@ -49,6 +49,7 @@ has 'navtree_footer_template', is => 'ro', isa => 'Maybe[Str]', default => sub {
 has 'page_viewer_class', is => 'ro', isa => 'Maybe[Str]', default => sub {undef};
 has 'page_viewer_params', is => 'ro', isa => 'HashRef', lazy => 1, default => sub{{}};
 
+
 sub BUILD {
 	my $self = shift;
 	
@@ -182,9 +183,11 @@ sub west_area_items {
   
   # Dynamic "typing" (of sorts). Allow raw ExtJS configs to
   # be interspersed among module cnfs 
-  return [ map {
-    $_->{module} ? $self->Module($_->{module})->content : $_
-  } @{$self->navtrees} ];
+  my @items = map {
+    $_->{module} ? $self->Module($_->{module})->allowed_content : $_
+  } @{$self->navtrees};
+  
+  return \@items;
 }
 
 

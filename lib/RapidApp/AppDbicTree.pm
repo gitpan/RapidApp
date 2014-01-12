@@ -12,6 +12,7 @@ require Module::Runtime;
 has 'dbic_models', is => 'ro', isa => 'Maybe[ArrayRef[Str]]', default => undef;
 has 'table_class', is => 'ro', isa => 'Str', required => 1;
 has 'configs', is => 'ro', isa => 'HashRef', default => sub {{}};
+has 'menu_require_role', is => 'ro', isa => 'Maybe[Str]', default => sub {undef};
 
 has 'dbic_model_tree', is => 'ro', isa => 'ArrayRef[HashRef]', lazy => 1, default => sub {
 	my $self = shift;
@@ -93,6 +94,13 @@ sub BUILD {
 	my $self = shift;
 	
 	Module::Runtime::require_module($self->table_class);
+  
+  # menu_require_role only applies to the top level/navtree nodes which
+  # simply hides the links, but preserves access to the real pages/data
+  $self->apply_extconfig( require_role => $self->menu_require_role ) if (
+    ! $self->require_role &&
+    $self->menu_require_role
+  );
 	
 	# init
 	$self->TreeConfig;
@@ -106,6 +114,10 @@ has 'TreeConfig', is => 'ro', isa => 'ArrayRef[HashRef]', lazy => 1, default => 
 	for my $s (@{$self->dbic_model_tree}) {
 		my $model = $s->{model};
 		my $schema = $self->app->model($model)->schema;
+    
+    my $require_role = $self->require_role || try{$self->configs->{$model}{require_role}};
+    my $menu_req_role = $require_role || $self->menu_require_role;
+    
 		my @children = ();
 		for my $source (sort @{$s->{sources}}) {
 			my $Source = $schema->source($source) or die "Source $source not found!";
@@ -117,12 +129,17 @@ has 'TreeConfig', is => 'ro', isa => 'ArrayRef[HashRef]', lazy => 1, default => 
       # place (note this probably needs to be fixed in there for exactly this reason)
       my $cust_merged = clone( Catalyst::Utils::merge_hashes($cust_def_config,$cust_config) );
       
-			my $module_name = lc($model . '_' . $Source->from);
+      my $module_name = lc($model . '_' . $Source->from);
       $module_name =~ s/\:\:/_/g;
-			$self->apply_init_modules( $module_name => {
-				class => $self->table_class,
-				params => { %$cust_merged, ResultSource => $Source, source_model => $model . '::' . $source }
-			});
+      $self->apply_init_modules( $module_name => {
+        class => $self->table_class,
+        params => { 
+          %$cust_merged, 
+          ResultSource => $Source, 
+          source_model => $model . '::' . $source,
+          require_role => $require_role
+        }
+      });
 			
 			my $class = $schema->class($source);
 			my $text = $class->TableSpec_get_conf('title_multi') || $source;
@@ -134,7 +151,8 @@ has 'TreeConfig', is => 'ro', isa => 'ArrayRef[HashRef]', lazy => 1, default => 
 				module		=> $module_name,
 				params		=> {},
 				expand		=> 1,
-				children	=> []
+				children	=> [],
+        require_role => $menu_req_role
 			}
 		}
 		
@@ -153,7 +171,8 @@ has 'TreeConfig', is => 'ro', isa => 'ArrayRef[HashRef]', lazy => 1, default => 
 				tabTitle => $text,
 				tabIconCls => $iconcls,
         exclude_sources => $exclude_sources,
-        header_template => $template
+        header_template => $template,
+        require_role => $require_role
 			}
 		});
     
@@ -166,12 +185,14 @@ has 'TreeConfig', is => 'ro', isa => 'ArrayRef[HashRef]', lazy => 1, default => 
 			module		=> $module_name,
 			params	=> {},
 			expand	=> $expand,
-			children	=> \@children
+			children	=> \@children,
+      require_role => $menu_req_role
 		};
 	}
 	
 	return \@items;
 };
+
 
 
 #### --------------------- ####
