@@ -154,7 +154,7 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "0.99028",
+  "VERSION" => "0.99029",
   "test" => {
     "TESTS" => ""
   }
