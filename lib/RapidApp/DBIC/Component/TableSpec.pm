@@ -188,8 +188,7 @@ sub is_TableSpec_applied {
 	my $self = shift;
 	return (
 		defined $self->TableSpec_cnf and
-		defined $self->TableSpec_cnf->{data} and
-		defined $self->TableSpec_cnf->{data}->{apply_TableSpec_timestamp}
+		defined $self->TableSpec_cnf->{apply_TableSpec_timestamp}
 	);
 }
 
@@ -283,9 +282,7 @@ sub default_TableSpec_cnf  {
 	my $self = shift;
 	my $set = shift || {};
 
-	my $data = $set->{data} || {};
-	my $order = $set->{order} || {};
-	my $deref = $set->{deref} || {};
+  my $data = $set;
 	
 	
 	my $table = $self->table;
@@ -326,11 +323,12 @@ sub default_TableSpec_cnf  {
 	
 	$defaults{related_column_property_transforms} = $rel_trans;
 	
-	my $defs = { data => \%defaults };
+  my $defs = \%defaults;
 	
 	my $col_cnf = $self->default_TableSpec_cnf_columns($set);
+  
 	$defs = merge($defs,$col_cnf);
-
+  
 	return merge($defs, $set);
 }
 
@@ -338,21 +336,19 @@ sub default_TableSpec_cnf_columns {
 	my $self = shift;
 	my $set = shift || {};
 
-	my $data = $set->{data} || {};
-	my $order = $set->{order} || {};
-	my $deref = $set->{deref} || {};
+  my $data = $set;
 	
 	my @col_order = $self->default_TableSpec_cnf_column_order($set);
 	
 	my $cols = { map { $_ => {} } @col_order };
-	
+  
 	# lowest precidence:
 	$cols = merge($cols,$set->{data}->{column_properties_defaults} || {});
 
-	$cols = merge($cols,$set->{data}->{column_properties_ordered} || {});
+	$cols = merge($cols,$set->{column_properties_ordered} || {});
 		
 	# higher precidence:
-	$cols = merge($cols,$set->{data}->{column_properties} || {});
+	$cols = merge($cols,$set->{column_properties} || {});
 
 	my $data_types = $self->TableSpec_data_type_profiles;
 	#scream(keys %$cols);
@@ -366,14 +362,14 @@ sub default_TableSpec_cnf_columns {
 		$is_local = 0 if (
 			$is_local and
 			$self->has_relationship($col) and
-			$set->{data}->{'priority_rel_columns'}
+			$set->{'priority_rel_columns'}
 		);
 		
 		# -- If priority_rel_columns is on but we need to exclude a specific column:
 		$is_local = 1 if (
 			! $is_local and
-			$set->{data}->{no_priority_rel_column} and
-			$set->{data}->{no_priority_rel_column}->{$col} and
+			$set->{no_priority_rel_column} and
+			$set->{no_priority_rel_column}->{$col} and
 			$self->has_column($col)
 		);
 		# --
@@ -393,6 +389,17 @@ sub default_TableSpec_cnf_columns {
 				
 				if ($info->{attrs}->{accessor} eq 'single' || $info->{attrs}->{accessor} eq 'filter') {
 					
+          # -- NEW: Virtual Single Relationship - will be read-only
+          # with no open link:
+          unless($cond_data->{foreign} && $cond_data->{self}) {
+            $cols->{$col}{virtualized_single_rel} = 1;
+            delete $cols->{$col}{relationship_info};
+            $cols->{$col}{allow_add} = 0;
+            $cols->{$col}{allow_edit} = 0;
+            next;
+          }
+          # --
+          
 					# Use TableSpec_related_get_set_conf instead of TableSpec_related_get_conf
 					# to prevent possible deep recursion:
 					
@@ -549,207 +556,240 @@ sub default_TableSpec_cnf_columns {
     
 	}
 	
-	return {
-		data => { columns => $cols },
-		order => { columns => \@col_order }
-	};
+	return { columns => $cols };
 }
 
 sub TableSpec_valid_db_columns {
-	my $self = shift;
-	
-	my @single_rels = ();
-	my @multi_rels = ();
-	
-	my %fk_cols = ();
-	my %pri_cols = map {$_=>1} $self->primary_columns;
-	
-	foreach my $rel ($self->relationships) {
-		my $info = $self->relationship_info($rel);
-		
-		my $accessor = $info->{attrs}->{accessor};
-		
-		# 'filter' means single, but the name is also a local column
-		$accessor = 'single' if (
-			$accessor eq 'filter' and
-			$self->TableSpec_cnf->{data}->{'priority_rel_columns'} and
-			!(
-				$self->TableSpec_cnf->{data}->{'no_priority_rel_column'} and
-				$self->TableSpec_cnf->{data}->{'no_priority_rel_column'}->{$rel}
-			) and
-			! $pri_cols{$rel} #<-- exclude primary column names. TODO: this check is performed later, fix
-		);
-		
-		if($accessor eq 'single') {
-			push @single_rels, $rel;
-			
-			my ($fk) = keys %{$info->{attrs}->{fk_columns}};
-			$fk_cols{$fk} = $rel if($fk);
-		}
-		elsif($accessor eq 'multi') {
-			push @multi_rels, $rel;
-		}
-	}
-	
-	$self->TableSpec_set_conf('relationship_column_names',\@single_rels);
-	$self->TableSpec_set_conf('multi_relationship_column_names',\@multi_rels);
-	$self->TableSpec_set_conf('relationship_column_fks_map',\%fk_cols);
-	
-	return uniq($self->columns,@single_rels,@multi_rels);
+  my $self = shift;
+
+  my @single_rels = ();
+  my @multi_rels = ();
+  my @virtual_single_rels = ();
+
+  my %fk_cols = ();
+  my %pri_cols = map {$_=>1} $self->primary_columns;
+
+  foreach my $rel ($self->relationships) {
+    my $info = $self->relationship_info($rel);
+    
+    my $accessor = $info->{attrs}->{accessor};
+    
+    # 'filter' means single, but the name is also a local column
+    $accessor = 'single' if (
+      $accessor eq 'filter' and
+      $self->TableSpec_cnf->{'priority_rel_columns'} and
+      !(
+        $self->TableSpec_cnf->{'no_priority_rel_column'} and
+        $self->TableSpec_cnf->{'no_priority_rel_column'}->{$rel}
+      ) and
+      ! $pri_cols{$rel} #<-- exclude primary column names. TODO: this check is performed later, fix
+    );
+    
+    if($accessor eq 'single') {
+      my $cond_info = $self->parse_relationship_cond($info->{cond});
+      if($cond_info->{self} && $cond_info->{foreign}) {
+        push @single_rels, $rel;
+        my ($fk) = keys %{$info->{attrs}->{fk_columns}};
+        $fk_cols{$fk} = $rel if($fk);
+      }
+      else {
+        # (Github Issue #40)
+        # New: "virtual" single rels are relationships for which we
+        # cannot introspect in both directions (i.e. not physical
+        # foreign keys). These are still "single" in that they map to
+        # one related row, but will not be editable and not have a
+        # open link (yet) 
+        push @virtual_single_rels, $rel;
+      }
+    }
+    elsif($accessor eq 'multi') {
+      push @multi_rels, $rel;
+    }
+  }
+
+  $self->TableSpec_set_conf('relationship_column_names',\@single_rels);
+  $self->TableSpec_set_conf('multi_relationship_column_names',\@multi_rels);
+  $self->TableSpec_set_conf('relationship_column_fks_map',\%fk_cols);
+
+  return uniq($self->columns,@single_rels,@multi_rels,@virtual_single_rels);
 }
 
-sub default_TableSpec_cnf_column_order {
-	my $self = shift;
-	my $set = shift || {};
-	
-	my @order = ();
-	push @order, @{ $self->TableSpec_get_conf('column_properties_ordered',$set) || [] };
-	#push @order, $self->columns;
-	push @order, $self->TableSpec_valid_db_columns; # <-- native dbic column order has precidence over the column_properties order
-	push @order, @{ $self->TableSpec_get_conf('column_properties',$set) || [] };
-		
-	# fold together removing duplicates:
-	@order = uniq @order;
-	
-	my $ovrs = $self->TableSpec_get_conf('column_order_overrides',$set) or return @order;
-	foreach my $ord (@$ovrs) {
-		my ($offset,$cols) = @$ord;
-		my %colmap = map { $_ => 1 } @$cols;
-		# remove colnames to be ordered differently:
-		@order = grep { !$colmap{$_} } @order;
-		
-		# If the offset is a column name prefixed with + (after) or - (before)
-		$offset =~ s/^([\+\-])//;
-		if($1) {
-			my $i = 0;
-			my $ndx = 0; # <-- default before (will become 0 below)
-			$ndx = scalar @order if ($1 eq '+'); # <-- default after
-			for my $col (@order) {
-				$ndx = $i and last if ($col eq $offset);
-				$i++;
-			}
-			$ndx++ if ($1 eq '+' and $ndx > 0);
-			$offset = $ndx;
-		}
+# There is no longer extra logic at this stage because we're
+# backing off of the entire original "ordering" design:
+sub default_TableSpec_cnf_column_order { (shift)->TableSpec_valid_db_columns }
 
-		$offset = scalar @order if ($offset > scalar @order);
-		splice(@order,$offset,0,@$cols);
-	}
-	
-	return uniq @order;
-}
-
-
-# List of specific param names that we know should be hash confs:
-my %hash_conf_params = map {$_=>1} qw(
+# Tmp code: these are all key names that may be used to set column
+# properties (column TableSpecs). We are keeping track of them to
+# use to for remapping while the TableSpec_cnf refactor/consolidation
+# is underway...
+my @col_prop_names = qw(
+columns
 column_properties
 column_properties_ordered
 column_properties_defaults
-relationship_columns
-related_column_property_transforms
-column_order_overrides
 );
+my %col_prop_names = map {$_=>1} @col_prop_names;
 
+# The TableSpec_set_conf method is overly complex to allow
+# flexible arguments as either hash or hashref, and because of
+# the special case of setting the nested 'column_properties'
+# param, if specified as the first argument, and then be able to
+# accept its sub params as either a hash or a hashref. In hindsight, 
+# allowing this was probably not worth the extra maintenace/code and
+# was too fancy for its own good (since this case may or may not  
+# shift the key/value positions in the arg list) but it is a part
+# of the API for now...
 sub TableSpec_set_conf {
-	my $self = shift;
-	my $param = shift || return undef;
-	my $value = shift;# || die "TableSpec_set_conf(): missing value for param '$param'";
-	
-	$self->TableSpec_built_cnf(undef);
-	
-	return $self->TableSpec_set_hash_conf($param,$value,@_) 
-		if($hash_conf_params{$param} and @_ > 0);
-		
-	$self->TableSpec_cnf->{data}->{$param} = $value;
-	delete $self->TableSpec_cnf->{order}->{$param};
-	
-	return $self->TableSpec_set_conf(@_) if (@_ > 0);
-	return 1;
+  my $self = shift;
+  die "TableSpec_set_conf(): bad arguments" unless (scalar(@_) > 0);
+  
+  # First arg can be a hashref - deref and call again:
+  if(ref($_[0])) {
+    die "TableSpec_set_conf(): bad arguments" unless (
+      ref($_[0]) eq 'HASH' and
+      scalar(@_) == 1
+    );
+    return $self->TableSpec_set_conf(%{$_[0]})
+  }
+  
+  $self->TableSpec_built_cnf(undef); #<-- FIXME!!
+  
+  # Special handling for setting 'column_properties':
+  if ($col_prop_names{$_[0]}) {
+    shift @_; #<-- pull out the 'column_properties' first arg
+    return $self->_TableSpec_set_column_properties(@_);
+  };
+  
+  # Enforce even number of args for good measure:
+  die join(' ', 
+    'TableSpec_set_conf( %cnf ):',
+    "odd number of args in key/value list:", Dumper(\@_)
+  ) if (scalar(@_) & 1);
+  
+  my %cnf = @_;
+  
+  for my $param (keys %cnf) {
+    # Also make sure all the keys (even positions) are simple scalars:
+    die join(' ',
+      'TableSpec_set_conf( %cnf ):',
+      'found ref in key position:', Dumper($_)
+    ) if (ref($param));
+  
+    if($col_prop_names{$param}) {
+      # Also handle column_properties specified with other params:
+      die join(' ',
+        'TableSpec_set_conf( %cnf ): Expected',
+        "HashRef value for config key '$param':", Dumper($cnf{$param})
+      ) unless (ref($cnf{$param}) eq 'HASH');
+      $self->_TableSpec_set_column_properties($cnf{$param});
+    }
+    else {
+      $self->TableSpec_cnf->{$param} = $cnf{$param} 
+    }
+  }
 }
 
-# Stores arbitrary hashes, preserving their order
-sub TableSpec_set_hash_conf {
-	my $self = shift;
-	my $param = shift;
-	
-	return $self->TableSpec_set_conf($param,@_) if (@_ == 1); 
-	
-	$self->TableSpec_built_cnf(undef);
-	
-	my %opt = get_mixed_hash_args_ordered(@_);
-	
-	my $i = 0;
-	my $order = [ grep { ++$i & 1 } @_ ]; #<--get odd elements (keys)
-	
-	my $data = \%opt;
-	
-	$self->TableSpec_cnf->{data}->{$param} = $data;
-	$self->TableSpec_cnf->{order}->{$param} = $order;
+# Special new internal method for setting column properties and
+# properly handle backward compatability. Simultaneously sets/updates
+# the cnf key names for all the 'column_properties' names that are
+# currently supported by the API (as references pointing to the same
+# single config HashRef). This is only temporary and is a throwback
+# caused by the older/original API design for the TableSpec_cnf and
+# will be removed later on once the other config names can be depricated
+# along with other planned refactored. This is just a stop-gap to 
+# allow this refactor to be done in stages...
+sub _TableSpec_set_column_properties {
+  my $self = shift;
+  die "TableSpec_set_conf( column_properties => %cnf ): bad args" 
+    unless (scalar(@_) > 0);
+  
+  # First arg can be a hashref - deref and call again:
+  if(ref($_[0])) {
+    die "TableSpec_set_conf( column_properties => %cnf ): bad args"  unless (
+      ref($_[0]) eq 'HASH' and
+      scalar(@_) == 1
+    );
+    return $self->_TableSpec_set_column_properties(%{$_[0]})
+  }
+  
+  # Enforce even number of args for good measure:
+  die join(' ', 
+    'TableSpec_set_conf( column_properties => %cnf ):',
+    "odd number of args in key/value list:", Dumper(\@_)
+  ) if (scalar(@_) & 1);
+  
+  my %cnf = @_;
+  
+  # Also make sure all the keys (even positions) are simple scalars:
+  ref($_) and die join(' ',
+    'TableSpec_set_conf( column_properties => %cnf ):',
+    'found ref in key position:', Dumper($_)
+  ) for (keys %cnf);
+  
+  my %valid_colnames = map {$_=>1} ($self->TableSpec_valid_db_columns);
+  
+  my $col_props;
+  $col_props ||= $self->TableSpec_cnf->{$_} for (@col_prop_names);
+  $col_props ||= {};
+  
+  for my $col (keys %cnf) {
+    warn join(' ',
+      "Ignoring config for unknown column name '$col'",
+      "in $self TableSpec config\n"
+    ) and next unless ($valid_colnames{$col});
+    $col_props->{$col} = $cnf{$col};
+  }
+  
+  $self->TableSpec_cnf->{$_} = $col_props for (@col_prop_names);
 }
 
-# Sets a reference value with flag to dereference on TableSpec_get_conf
-sub TableSpec_set_deref_conf {
-	my $self = shift;
-	my $param = shift || return undef;
-	my $value = shift || die "TableSpec_set_deref_conf(): missing value for param '$param'";
-	die "TableSpec_set_deref_conf(): value must be a SCALAR, HASH, or ARRAY ref" unless (
-		ref($value) eq 'HASH' or
-		ref($value) eq 'ARRAY' or
-		ref($value) eq 'SCALAR'
-	);
-	
-	$self->TableSpec_cnf->{deref}->{$param} = 1;
-	my $ret = $self->TableSpec_set_conf($param,$value);
-
-	return $self->TableSpec_set_deref_conf(@_) if (@_ > 0);
-	return $ret;
-}
 
 sub TableSpec_get_conf {
-	my $self = shift;
-	my $param = shift || return undef;
-	my $storage = shift || $self->get_built_Cnf;
-	
-	return $self->TableSpec_get_hash_conf($param,$storage) if ($storage->{order}->{$param});
-	
-	my $data = $storage->{data}->{$param};
-	return deref($data) if ($storage->{deref}->{$param});
-	return $data;
+  my $self = shift;
+  my $param = shift || return undef;
+  my $storage = shift || $self->get_built_Cnf;
+  
+  # Special: map all column prop names into 'column_properties'
+  $param = 'column_properties' if ($col_prop_names{$param});
+
+  my $value = $storage->{$param};
+  
+  # FIXME FIXME FIXME
+  # In the original design of the TableSpec_cnf internals, which
+  # was too fancy for its own good, meta/type information was
+  # transparently stored to be able to do things like remember
+  # the order of keys in hashes, auto dereference, etc. This has
+  # been unfactored and converted to simple key/values since, however,
+  # places that might still call TableSpec_get_conf still expect
+  # to get back lists instead of ArrayRefs/HashRefs in certain
+  # places. These places should be very limited (part of the reason
+  # it was decided this whole thing wasn't worth it, because it just
+  # wasn't used enough), but for now, to honor the original API (mostly)
+  # we're dereferencing according to wantarray, since all the places
+  # that expect to get lists back obviously call TableSpec_get_conf
+  # in LIST context. This should not be kept this way for too long,
+  # however! It is just temporary until those outside places
+  # can be confirmed and eliminated, or a proper deprecation plan
+  # can be made, should that even be needed...
+  if(wantarray && ref($value)) {
+    warn join("\n",'',
+      "  WARNING: calling TableSpec_get_conf() in LIST context",
+      "  is deprecated, please update your code.",
+      "   --> Auto-dereferencing param '$param' $value",'',
+    '') if (ref($value) eq 'ARRAY' || ref($value) eq 'HASH');
+    return @$value if (ref($value) eq 'ARRAY');
+    return %$value if (ref($value) eq 'HASH');
+  }
+  
+  return $value;
 }
 
-sub TableSpec_get_hash_conf {
-	my $self = shift;
-	my $param = shift || return undef;
-	my $storage = shift || $self->get_built_Cnf;
-	
-	my $data = $storage->{data}->{$param};
-	my $order = $storage->{order}->{$param};
-	
-	ref($data) eq 'HASH' or
-		die "FATAL: Unexpected data! '$param' has a stored order, but it's data is not a HashRef!";
-		
-	ref($order) eq 'ARRAY' or
-		die "FATAL: Unexpected data! '$param' order is not an ArrayRef!";
-		
-	my %order_indx = map {$_=>1} @$order;
-	
-	# This is sometimes breaking, and this whole thing will be refactored soon...
-	#!$order_indx{$_} and
-	#	die "FATAL: Unexpected data! param '$param' - found key '$_' missing from stored order!"
-	#		for (keys %$data);
-			
-	!$data->{$_} and
-		die "FATAL: Unexpected data! param '$param' - missing declared ordered key '$_' from data!"
-			for (@$order);
-	
-	return map { $_ => $data->{$_} } @$order;
-}
 
 sub TableSpec_has_conf {
 	my $self = shift;
 	my $param = shift;
 	my $storage = shift || $self->get_built_Cnf;
-	return 1 if (exists $storage->{data}->{$param});
+	return 1 if (exists $storage->{$param});
 	return 0;
 }
 
@@ -823,25 +863,32 @@ sub get_foreign_column_from_cond {
 	die "Failed to find forein column from condition: " . Dumper($cond);
 }
 
-# TODO: Find a better way to handle this. Is there a real API
-# in DBIC to find this information?
+# This function parses 'foreign' and 'self' column names from the
+# 'cond' of a defined in a DBIC relationship into a hashref. It is
+# only able to do this for simple, single-key foreign key rels
+# of the form:    { "foreign.id_col" => "self.fk_col" }
+# All other forms, such as multi-keys and CodeRefs, will return
+# and empty HashRef. The only reason we really need this information
+# outside of DBIC is for editable single rels (FKs) to be able
+# to present selection dialogs (i.e. dropdowns) and currently
+# the "open" magnify links, but the open links are planned to be
+# changed to reference URLs based on the relationship name, which
+# will remove this dependency and allow open links for any relationship
+# column, including even those with CodeRef conditions...
 sub parse_relationship_cond {
-	my $self = shift;
-	my $cond = shift;
-	
-	my $data = {};
-	
-	die "currently only single-key hashref conditions are supported" unless (
-		ref($cond) eq 'HASH' and
-		scalar keys %$cond == 1
-	);
-	
-	foreach my $i (%$cond) {
-		my ($side,$col) = split(/\./,$i);
-		$data->{$side} = $col;
-	}
-	
-	return $data;
+  my ($self,$cond,$info) = @_;
+  
+  return {} unless (
+    ref($cond) eq 'HASH' and
+    scalar keys %$cond == 1
+  );
+  
+  my $data = {};
+  foreach my $i (%$cond) {
+    my ($side,$col) = split(/\./,$i);
+    $data->{$side} = $col;
+  }
+  return $data;
 }
 
 # Works like an around method modifier, but $self is expected as first arg and
@@ -1010,30 +1057,6 @@ sub apply_row_methods {
 	# ---
 }
 
-
-# --------
-# NEW: EXCLUDE CODEREF RELATIONSHIPS INSTEAD OF THROWING EXCEPTION
-# This is a temp hack until support for CodeRefs in relationship
-# support is added, or until they are excluded on a non-global basis
-# (i.e. with this code the relationships are excluded from ALL locations
-# including backend code). <--- TODO/FIXME
-sub relationships {
-  my $self = shift;
-  my @rels = $self->next::method(@_);
-  return grep { ! $self->_rel_is_coderef_cond($_) } @rels;
-}
-sub has_relationship {
-  my ($self, $rel) = @_;
-  my $answer = $self->next::method($rel);
-  return 0 if ($answer && $self->_rel_is_coderef_cond($rel));
-  return $answer;
-}
-sub _rel_is_coderef_cond {
-  my ($self, $rel) = @_;
-  my $info = $self->relationship_info($rel) or return 0;
-  return ref($info->{cond}) eq 'CODE' ? 1 : 0
-}
-# --------
 
 
 ### -- old, pre-rest inlineNavLink:

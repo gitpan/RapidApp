@@ -1,3 +1,4 @@
+Changes
 LICENSE
 MANIFEST
 META.yml
@@ -666,3 +667,4 @@ share/templates/rapidapp/public/login_form.tt
 share/templates/rapidapp/simple_auth_banner.tt
 share/templates/rapidapp/web1_page.tt
 share/templates/rapidapp/xhtml_document.tt
+test.pl

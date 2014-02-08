@@ -287,14 +287,6 @@ hashash 'Cnf', lazy => 1, default => sub {
 	my $self = shift;
 	my $class = $self->ResultClass;
 	
-	#my $cf;
-	#if($class->can('TableSpec_cnf')) {
-	#	$cf = $class->get_built_Cnf;
-	#}
-	#else {
-	#	$cf = RapidApp::DBIC::Component::TableSpec::default_TableSpec_cnf($class);
-	#}
-	
 	# Load the TableSpec Component on the Result Class if it isn't already:
 	# (should this be done like this? this is a global change and could be an overreach)
 	unless($class->can('TableSpec_cnf')) {
@@ -303,16 +295,16 @@ hashash 'Cnf', lazy => 1, default => sub {
 	}
 	
 	my $cf = $class->get_built_Cnf;
-	
-	%{$self->Cnf_order} = %{ $cf->{order} || {} };
-	return $cf->{data} || {};
+  
+	#%{$self->Cnf_order} = %{ $cf->{order} || {} };
+	#return $cf->{data} || {};
+  
+  # Legacy/backcompat: simulate the olf TableSpec_cnf format:
+  my $sim_order = { columns => [ keys %{$cf->{columns}} ] };
+  
+  %{$self->Cnf_order} = %{ $sim_order || {} };
+  return $cf || {};
 };
-
-
-
-
-
-
 
 has 'relationship_column_configs', is => 'ro', isa => 'HashRef', lazy_build => 1; 
 sub _build_relationship_column_configs {
@@ -325,7 +317,6 @@ sub _build_relationship_column_configs {
 	my %columns = $class->TableSpec_get_conf('columns');
 	return { map { $_ => $columns{$_} } grep { $rel_cols_indx{$_} } keys %columns };
 };
-
 
 
 # colspecs that were added solely for the relationship columns
@@ -1115,7 +1106,7 @@ sub add_related_TableSpec {
 	
 	my $class = $self->ResultClass;
 	if($class->can('TableSpec_get_conf') and $class->TableSpec_has_conf('related_column_property_transforms')) {
-		my $rel_transforms = $class->TableSpec_cnf->{'related_column_property_transforms'}->{data};
+    my $rel_transforms = $class->TableSpec_get_conf('related_column_property_transforms');
 		$params{column_property_transforms} = $rel_transforms->{$rel} if ($rel_transforms->{$rel});
 		
 		# -- Hard coded default 'header' transform (2011-12-25 by HV)
@@ -1247,98 +1238,139 @@ $get_render_col is a boolean of whether this function should instead return
 
 =cut
 sub resolve_dbic_colname {
-	my ($self, $name, $merge_join, $get_render_col)= @_;
-	$get_render_col ||= 0;
-	
-	my ($rel,$col,$join,$cond_data) = $self->resolve_dbic_rel_alias_by_column_name($name,$get_render_col);
+  my ($self, $name, $merge_join, $get_render_col)= @_;
+  $get_render_col ||= 0;
 
-	%$merge_join = %{ merge($merge_join,$join) }
-		if ($merge_join and $join);
+  my ($rel,$col,$join,$cond_data) = $self->resolve_dbic_rel_alias_by_column_name($name,$get_render_col);
 
-	if (!defined $cond_data) {
-		# it is a simple column
-		return "$rel.$col";
-	} else {
-		# If cond_data is defined, the relation is a multi-relation, and we need to either
-		#  join and group-by, or run a sub-query.  If join-and-group-by happens twice, it
-		#  breaks COUNT() (because the number of joined rows gets multiplied) so by default
-		#  we only use sub-queries.  In fact, join and group-by has a lot of problems on
-		#  MySQL and we should probably never use it.
-		$cond_data->{function} = $cond_data->{function} || $self->multi_rel_columns_indx->{$name};
-		
-		# Support for a custom aggregate function
-		if (ref($cond_data->{function}) eq 'CODE') {
-			# TODO: we should use hash-style parameters
-			return $cond_data->{function}->($self,$rel,$col,$join,$cond_data,$name);
-		}
-		else {
-			# Setup the special GROUP_CONCAT render/function
-			my $m2m_attrs = $cond_data->{info}->{attrs}->{m2m_attrs};
-			if($m2m_attrs) {
-			
-				my $rinfo = $m2m_attrs->{rinfo};
-				my $rrinfo = $m2m_attrs->{rrinfo};
-			
-				# initial hard-coded example the dynamic logic was based on:
-				#my $sql = '(' .
-				#	# SQLite Specific:
-				#	#'SELECT(GROUP_CONCAT(flags.flag,", "))' .
-				#	
-				#	# MySQL Sepcific:
-				#	#'SELECT(GROUP_CONCAT(flags.flag SEPARATOR ", "))' .
-				#	
-				#	# Generic (MySQL & SQLite):
-				#	'SELECT(GROUP_CONCAT(flags.flag))' .
-				#	
-				#	' FROM ' . $source->from . 
-				#	' JOIN `flags` `flags` ON customers_to_flags.flag = flags.flag' .
-				#	' WHERE ' . $cond_data->{foreign} . ' = ' . $rel . '.' . $cond_data->{self} . 
-				#')';
-				
-				
-				### TODO: build this using DBIC (subselect_rs as_query? resultset_column ?)
-				### This is unfortunately database specific. It works in MySQL and SQLite, and
-				### should work in any database with the GROUP_CONCAT function. It doesn't work
-				### in PostgrSQL because it doesn't have GROUP_CONCAT. This will have to be implemented
-				### separately first each db. TODO: ask the storage engine for the db type and apply
-				### a correct version of the function:
-				
-				# TODO: support cross-db relations
-				
-				my $sql = '(' .
-					# Generic (MySQL & SQLite):
-					'SELECT(GROUP_CONCAT(' . quote_table_strip_db($rrinfo->{table}) . '.`' . $rrinfo->{cond_info}->{foreign} . '`))' .
-					
-					' FROM ' . quote_table_strip_db($rinfo->{table}) . 
-					' JOIN ' . quote_table_strip_db($rrinfo->{table}) . ' ' . quote_table_strip_db($rrinfo->{table}) .
-					'  ON ' . quote_table_strip_db($rinfo->{table}) . '.`' . $rrinfo->{cond_info}->{self} . '`' .
-					'   = ' . quote_table_strip_db($rrinfo->{table}) . '.`' . $rrinfo->{cond_info}->{foreign} . '`' .
-					#' ON customers_to_flags.flag = flags.flag' .
-					' WHERE `' . $rinfo->{cond_info}->{foreign} . '` = `' . $rel . '`.`' . $cond_data->{self} . '`' . 
-				')';
-				
-				return { '' => \$sql, -as => $name };		
-			}
-			else {
-				
-				#TODO: follow the native has_many accessor so we don't have to reproduce the attrs, etc!!!!
-				
-				# If not customized, we return a sub-query which counts the related items
-				my $source = $self->schema->source($cond_data->{info}{source});
-				my $rel_rs= $source->resultset_class->new($source, { alias => 'inner' })->search_rs(
-					{ "inner.$cond_data->{foreign}" => \[" = $rel.$cond_data->{self}"] },
-					{ %{$source->resultset_attributes || {}}, %{$cond_data->{info}{attrs} || {}} }
-				);
-				return { '' => $rel_rs->count_rs->as_query, -as => $name };
-			}
-		}
-	}
-}
+  %$merge_join = %{ merge($merge_join,$join) }
+    if ($merge_join and $join);
+    
+    
 
-# NEW: Works with either 'db.table' or 'table' format:
-sub quote_table_strip_db {
-	my $table = shift;
-	return '`' . (reverse split(/\./,$table))[0] . '`';
+  if (!defined $cond_data) {
+    # it is a simple column
+    return "$rel.$col";
+  } else {
+
+    # If cond_data is defined, the relation is a multi-relation, and we need to either
+    #  join and group-by, or run a sub-query.  If join-and-group-by happens twice, it
+    #  breaks COUNT() (because the number of joined rows gets multiplied) so by default
+    #  we only use sub-queries.  In fact, join and group-by has a lot of problems on
+    #  MySQL and we should probably never use it.
+    $cond_data->{function} = $cond_data->{function} || $self->multi_rel_columns_indx->{$name};
+    
+    # Support for a custom aggregate function
+    if (ref($cond_data->{function}) eq 'CODE') {
+      # TODO: we should use hash-style parameters
+      return $cond_data->{function}->($self,$rel,$col,$join,$cond_data,$name);
+    }
+    else {
+      my $m2m_attrs = $cond_data->{info}->{attrs}->{m2m_attrs};
+      if($m2m_attrs) {
+        # -- m2m relationship column --
+        #
+        # Setup the special GROUP_CONCAT render/function
+        #
+        # This is a partial implementation supporting "m2m" (many_to_many)
+        # relationship columns as added by the special result class function:
+        #  __PACKAGE__->TableSpec_m2m( 'rel' => 'linkrel', 'foreignrel' );
+        # Which needs to be used instead of the built-in __PACKAGE__->many_to_many
+        # function. (side note: this is needed for the same reason that 
+        # DBIx::Class::IntrospectableM2M was created).
+        #
+        # This function renders the values as a CSV list, so it is only suitable
+        # for many_to_many cases with a limited number of rows (e.g. roles table)
+        # which is probably the most common scenario, but certainly not the only
+        # one. Also, this CSV list is tied into the functioning of the m2m column
+        # editor. It is also db-specific, and only tested is MySQL and SQLite.
+        # All these reasons are why I say this implementation is "partial" in
+        # its current form.
+
+        my $rinfo = $m2m_attrs->{rinfo};
+        my $rrinfo = $m2m_attrs->{rrinfo};
+      
+        # initial hard-coded example the dynamic logic was based on:
+        #my $sql = '(' .
+        #	# SQLite Specific:
+        #	#'SELECT(GROUP_CONCAT(flags.flag,", "))' .
+        #	
+        #	# MySQL Sepcific:
+        #	#'SELECT(GROUP_CONCAT(flags.flag SEPARATOR ", "))' .
+        #	
+        #	# Generic (MySQL & SQLite):
+        #	'SELECT(GROUP_CONCAT(flags.flag))' .
+        #	
+        #	' FROM ' . $source->from . 
+        #	' JOIN `flags` `flags` ON customers_to_flags.flag = flags.flag' .
+        #	' WHERE ' . $cond_data->{foreign} . ' = ' . $rel . '.' . $cond_data->{self} . 
+        #')';
+        
+        
+        ### TODO: build this using DBIC (subselect_rs as_query? resultset_column ?)
+        ### This is unfortunately database specific. It works in MySQL and SQLite, and
+        ### should work in any database with the GROUP_CONCAT function. It doesn't work
+        ### in PostgrSQL because it doesn't have GROUP_CONCAT. This will have to be implemented
+        ### separately first each db. TODO: ask the storage engine for the db type and apply
+        ### a correct version of the function:
+        
+        # TODO: support cross-db relations
+        
+        # Strips <dbname>. prefix, if present:
+        my $rtable = (reverse split(/\./,$rinfo->{table}))[0];
+        my $rrtable = (reverse split(/\./,$rrinfo->{table}))[0];
+        
+        my $sql = join(' ', '(',
+          # Generic (MySQL & SQLite):
+          "SELECT(GROUP_CONCAT(`$rrtable`.`$rrinfo->{cond_info}->{foreign}`))",
+          " FROM `$rtable`",
+          " JOIN `$rrtable` `$rrtable`",
+          "  ON `$rtable`.`$rrinfo->{cond_info}->{self}` = `$rrtable`.`$rrinfo->{cond_info}->{foreign}`",
+          " WHERE `$rinfo->{cond_info}->{foreign}` = `$rel`.`$cond_data->{self}`",
+        ')');
+        
+        return { '' => \$sql, -as => $name };		
+      }
+      else {
+       
+        my $source = $self->schema->source($cond_data->{info}{source});
+        
+        # --- Github Issue #40 ---
+        # This was the original, manual condition generation which only supported 
+        # single-key relationship conditions (and not multi-key or CodeRef):
+        #my $cond = { "${rel}_alias.$cond_data->{foreign}" => \[" = $rel.$cond_data->{self}"] };
+        
+        # This is the new way which uses DBIC's internal machinery in the proper way
+        # and works for any multi-rel cond type, including CodeRef:
+        my $cond = $source->_resolve_condition(
+          $cond_data->{info}{cond},
+          "${rel}_alias",
+          $rel,
+        );
+        # ---
+        
+        my $rel_rs = $source->resultset_class->new($source, { alias => "${rel}_alias" })->search_rs(
+          $cond,
+          { %{$source->resultset_attributes || {}}, %{$cond_data->{info}{attrs} || {}} }
+        );
+        
+        if($cond_data->{info}{attrs}{accessor} eq 'multi') {
+          # -- standard multi relationship column --
+          # This is where the count sub-query is generated that provides
+          # the numeric count of related items for display in multi rel columns.
+          return { '' => $rel_rs->count_rs->as_query, -as => $name };
+        }
+        else {
+          # -- NEW: virtualized single relationship column --
+          # Returns the related display_column value as a subquery using the same
+          # technique as the count for multi-relationship columns
+          my $display_column = $source->result_class->TableSpec_get_conf('display_column')
+            or die "Failed to get display_column";
+          return { '' => $rel_rs->get_column($display_column)->as_query, -as => $name };
+        }
+      }
+    }
+  }
 }
 
 sub resolve_dbic_rel_alias_by_column_name  {
@@ -1420,8 +1452,22 @@ sub resolve_dbic_rel_alias_by_column_name  {
 			return ('me',$name,$join,$cond_data);
 		}
 		## ----
+    ## --- NEW: Virtual Single Relationship Column (Github Issue #40)
+    elsif($self->ResultClass->has_relationship($name)){
+      my $cnf = $self->Cnf_columns->{$name};
+      if ($cnf && $cnf->{virtualized_single_rel}) {
+        # This is emulating the existing format being passed around and
+        # used for relationship columns (see multi_rel_columns_indx). This
+        # is going to be totally refactored and simplified later (also,
+        # note that 'me' has no actual meaning and is a throwback)
+        return ('me',$name,$join,{ 
+          relname => $name,
+          info => $self->ResultClass->relationship_info($name)
+        });
+      }
+    }
+    # ---
 		
-	
 		return ('me',$name,$join);
 	}
 	
@@ -1475,6 +1521,13 @@ sub get_relationship_column_cnf {
 	my $self = shift;
 	my $rel = shift;
 	my %opt = (ref($_[0]) eq 'HASH') ? %{ $_[0] } : @_; # <-- arg as hash or hashref
+  
+  # --- NEW
+  return ( 
+    %opt, 
+    name => $self->column_prefix . $rel
+  ) if ($opt{virtualized_single_rel});
+  # ---
 	
 	return $self->get_multi_relationship_column_cnf($rel,\%opt) if ($self->multi_rel_columns_indx->{$rel});
 	
@@ -1816,10 +1869,10 @@ sub get_multi_relationship_column_cnf {
 	
 	my $cur_renderer = $conf->{renderer};
 	
-	$conf->{required_fetch_columns} = [
-		$self->column_prefix . $rel_data->{self}
-	];
-	
+  $conf->{required_fetch_columns} ||= [];
+  push @{$conf->{required_fetch_columns}}, $self->column_prefix . $rel_data->{self} 
+    if ($rel_data->{self});
+
 	# not fully working yet, use_rest turned off...
 	my $use_rest = 0;
 	my $rel_rest_key = try{$self->ResultClass->getRestKey};
@@ -1841,7 +1894,7 @@ sub get_multi_relationship_column_cnf {
 	}
 	else {
 		# Fall back to the old thick, loadCnf inlineLink
-		$conf->{renderer} = jsfunc(
+		$conf->{renderer} = $rel_data->{self} ? jsfunc(
 			'function(value, metaData, record, rowIndex, colIndex, store) {' .
 				"var div_open = '$div_open';" .
 				"var disp = div_open + value + '</span>';" .
@@ -1891,7 +1944,17 @@ sub get_multi_relationship_column_cnf {
 				"disp += '</span></div>';" .
 				'return disp;' .
 			'}', $cur_renderer
-		);
+		) : jsfunc( 
+      # New: skip all the above open link logic in advance if we don't have
+      # self/foreign rel data. Added for Github Issue #40 now that it is 
+      # possible for it to be missing (just means there will be no open link):
+      join("\n", 
+        'function(value, metaData, record, rowIndex, colIndex, store) {',
+          "var div_open = '$div_open';",
+          "return div_open + value + '</span></span></div>';",
+        '}'
+      )
+   );
 	}
 	
 	

@@ -44,7 +44,7 @@ requires:
   Class::MOP::Class: 0
   Clone: 0
   Cwd: 0
-  DBIx::Class: 0.08250
+  DBIx::Class: 0.08270
   DBIx::Class::Core: 0
   DBIx::Class::PassphraseColumn: 0.02
   DBIx::Class::ResultSet: 0
@@ -147,4 +147,4 @@ requires:
 resources:
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99029
+version: 0.99030

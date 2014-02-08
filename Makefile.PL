@@ -53,7 +53,7 @@ my %WriteMakefileArgs = (
     "Class::MOP::Class" => 0,
     "Clone" => 0,
     "Cwd" => 0,
-    "DBIx::Class" => "0.08250",
+    "DBIx::Class" => "0.08270",
     "DBIx::Class::Core" => 0,
     "DBIx::Class::PassphraseColumn" => "0.02",
     "DBIx::Class::ResultSet" => 0,
@@ -154,7 +154,7 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "0.99029",
+  "VERSION" => "0.99030",
   "test" => {
     "TESTS" => ""
   }
