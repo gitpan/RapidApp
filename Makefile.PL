@@ -38,6 +38,7 @@ my %WriteMakefileArgs = (
     "Catalyst::Authentication::Store::DBIx::Class" => "0.1505",
     "Catalyst::Controller" => 0,
     "Catalyst::Controller::AutoAssets" => "0.24",
+    "Catalyst::Devel" => "1.39",
     "Catalyst::Log" => 0,
     "Catalyst::Model" => 0,
     "Catalyst::Model::DBIC::Schema" => 0,
@@ -154,7 +155,7 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "0.99030",
+  "VERSION" => "0.99031",
   "test" => {
     "TESTS" => ""
   }

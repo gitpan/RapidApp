@@ -29,6 +29,7 @@ requires:
   Catalyst::Authentication::Store::DBIx::Class: 0.1505
   Catalyst::Controller: 0
   Catalyst::Controller::AutoAssets: 0.24
+  Catalyst::Devel: 1.39
   Catalyst::Log: 0
   Catalyst::Model: 0
   Catalyst::Model::DBIC::Schema: 0
@@ -147,4 +148,4 @@ requires:
 resources:
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99030
+version: 0.99031

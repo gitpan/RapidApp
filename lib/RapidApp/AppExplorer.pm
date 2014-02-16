@@ -130,7 +130,6 @@ sub navtree_area {
 
   my $west = {
     region	=> 'west',
-    id => 'main-navtrees-container',
     title		=> $self->title,
     iconCls		=> $self->iconCls,
     collapsible => \1,
@@ -138,15 +137,24 @@ sub navtree_area {
     minSize => 150,
     width	=> 240,
     margins => '3 3 3 3',
-    layout	=> 'anchor',
+    layout	=> 'fit',
     tools => [{
       id => 'refresh',
       qtip => 'Refresh Nav Tree',
       handler => jsfunc 'Ext.ux.RapidApp.NavCore.reloadMainNavTrees'
     }],
     collapseFirst => \0,
-    items => $self->west_area_items,
-    autoScroll => \1
+    autoScroll => \0,
+    items => {
+      # We need to nest within an additional panel layer to ensure
+      # proper scrolling. Note that autoScroll is set in this panel,
+      # and *not* in the parent panel above (region: west)
+      id => 'main-navtrees-container',
+      xtype => 'panel',
+      autoScroll => \1,
+      border => \0, bodyBorder => \0,
+      items => $self->west_area_items
+    }
   };
   
   $west->{collapsed} = \1 if ($self->navtree_load_collapsed);
@@ -185,6 +193,10 @@ sub west_area_items {
   # be interspersed among module cnfs 
   my @items = map {
     $_->{module} ? $self->Module($_->{module})->allowed_content : $_
+  } grep {
+    # New: exclude items where 'menu_require_role' is set but the 
+    # current user does not have the role
+    ! $_->{menu_require_role} || $self->role_checker->($self->c,$_->{menu_require_role})
   } @{$self->navtrees};
   
   return \@items;
