@@ -59,7 +59,6 @@ lib/RapidApp/AppTemplateTree.pm
 lib/RapidApp/AppTree.pm
 lib/RapidApp/AppTreeExplorer.pm
 lib/RapidApp/AttributeHandlers.pm
-lib/RapidApp/BgTaskInterface.pm
 lib/RapidApp/Catalyst.pm
 lib/RapidApp/CatalystX/Profile.pm
 lib/RapidApp/CatalystX/Profile/Controller/ControlProfiling.pm

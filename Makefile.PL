@@ -109,7 +109,6 @@ my %WriteMakefileArgs = (
     "Params::Validate" => 0,
     "Path::Class" => 0,
     "Plack" => "1.0030",
-    "RapidApp::BgTask::TaskPool" => 0,
     "SQL::Translator" => "0.11016",
     "Scalar::Util" => 0,
     "Spreadsheet::ParseExcel" => 0,
@@ -142,7 +141,7 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "0.99100",
+  "VERSION" => "0.99101",
   "test" => {
     "TESTS" => ""
   }

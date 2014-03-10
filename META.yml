@@ -100,7 +100,6 @@ requires:
   Params::Validate: 0
   Path::Class: 0
   Plack: 1.0030
-  RapidApp::BgTask::TaskPool: 0
   SQL::Translator: 0.11016
   Scalar::Util: 0
   Spreadsheet::ParseExcel: 0
@@ -135,4 +134,4 @@ requires:
 resources:
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99100
+version: 0.99101
