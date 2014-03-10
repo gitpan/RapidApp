@@ -2,7 +2,7 @@ package RapidApp;
 use strict;
 use warnings;
 
-our $VERSION = '0.99031';
+our $VERSION = '0.99100';
 
 use Carp::Clan;
 
@@ -25,6 +25,12 @@ sub share_dir {
 our $ACTIVE_REQUEST_CONTEXT = undef;
 
 sub active_request_context { $ACTIVE_REQUEST_CONTEXT }
+
+
+
+# Private - will be removed in the future:
+our $ROOT_MODULE_INSTANCE = undef;
+sub _rootModule { $ROOT_MODULE_INSTANCE }
 
 1;
 

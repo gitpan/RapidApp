@@ -206,49 +206,57 @@ Ext.ux.RapidApp.errMsgHandler = function(title,msg,as_text) {
 }
 
 
+Ext.ux.RapidApp.showAjaxError = function(title,msg,options,data) {
+  data = data || {};
+
+  // -----------------------------------------------------------------------------
+  // Check to see if this exception is associated with an AutoPanel load, and
+  // if it is, display the exception message in the AutoPanel body instead of in
+  // a new window
+  if(options && options.scope && options.scope.AutoPanelId) {
+    var AutoPanel = Ext.getCmp(options.scope.AutoPanelId);
+    if(AutoPanel) {
+      return AutoPanel.setErrorBody.call(AutoPanel,title,msg);
+    }
+  }
+  // -----------------------------------------------------------------------------
+  else {
+    if (data.winform) {
+      return Ext.ux.RapidApp.WinFormPost(data.winform);
+    }
+    else {
+      return Ext.ux.RapidApp.errMsgHandler(title,msg,data.as_text);
+    }
+  
+  }
+
+}
 
 Ext.ux.RapidApp.ajaxCheckException = function(conn,response,options) {
-	if (!response || !response.getResponseHeader) return;
-	try {
-		var exception = response.getResponseHeader('X-RapidApp-Exception');
-		if (exception) {
-			
-			var data = response.result || Ext.decode(response.responseText, true) || {};
-			var title = data.title || 'Error';
-			var msg = data.msg || 'unknown error - Ext.ux.RapidApp.ajaxCheckException';
-			
-			// -----------------------------------------------------------------------------
-			// Check to see if this exception is associated with an AutoPanel load, and
-			// if it is, display the exception message in the AutoPanel body instead of in
-			// a new window
-			if(options.scope && options.scope.AutoPanelId) {
-				var AutoPanel = Ext.getCmp(options.scope.AutoPanelId);
-				if(AutoPanel) {
-					return AutoPanel.setErrorBody.call(AutoPanel,title,msg);
-				}
-			}
-			// -----------------------------------------------------------------------------
-			
-			if (data.winform) {
-				Ext.ux.RapidApp.WinFormPost(data.winform);
-			}
-			else {
-				Ext.ux.RapidApp.errMsgHandler(title,msg,data.as_text);
-			}
-		}
-		
-		var warning = response.getResponseHeader('X-RapidApp-Warning');
-		if (warning) {
-			var data = Ext.decode(warning);
-			var title = data.title || 'Warning';
-			var msg = data.msg || 'Unknown (X-RapidApp-Warning)';
-			Ext.ux.RapidApp.errMsgHandler(title,msg,data.as_text);
-		}
-		
-		var eval_code = response.getResponseHeader('X-RapidApp-EVAL');
-		if (eval) { eval(eval_code); }
-	}
-	catch(err) {}
+  if (!response || !response.getResponseHeader) return;
+
+  try {
+    var exception = response.getResponseHeader('X-RapidApp-Exception');
+    if (exception) {
+      var data = response.result || Ext.decode(response.responseText, true) || {};
+      var title = data.title || 'Error';
+      var msg = data.msg || 'unknown error - Ext.ux.RapidApp.ajaxCheckException';
+      
+      Ext.ux.RapidApp.showAjaxError(title,msg,options,data);
+    }
+    
+    var warning = response.getResponseHeader('X-RapidApp-Warning');
+    if (warning) {
+      var data = Ext.decode(warning);
+      var title = data.title || 'Warning';
+      var msg = data.msg || 'Unknown (X-RapidApp-Warning)';
+      Ext.ux.RapidApp.errMsgHandler(title,msg,data.as_text);
+    }
+    
+    var eval_code = response.getResponseHeader('X-RapidApp-EVAL');
+    if (eval) { eval(eval_code); }
+  }
+  catch(err) {}
 }
 
 Ext.ux.RapidApp.ajaxRequestContentType = function(conn,options) {
@@ -257,9 +265,55 @@ Ext.ux.RapidApp.ajaxRequestContentType = function(conn,options) {
   options.headers['X-RapidApp-VERSION'] = Ext.ux.RapidApp.VERSION;
 };
 
+
+Ext.ux.RapidApp.ajaxException = function(conn,response,options) {
+  if (response && response.getResponseHeader) {
+    if(response.getResponseHeader('X-RapidApp-Exception')) {
+      // If this is an exception with the X-RapidApp-Exception header,
+      // pass it off to the normal check exception logic
+      return Ext.ux.RapidApp.ajaxCheckException.apply(this,arguments);
+    }
+    else {
+      // If we're here, it means a raw exception was encountered (5xx) 
+      // with an X-RapidApp-Exception header, so just throw the raw
+      // response body as text. This should not happen - it probably means 
+      // the server-side failed to catch the exception. The message will
+      // probably be ugly, but it is the best/safest thing we can do at 
+      // this point:
+      return Ext.ux.RapidApp.showAjaxError(
+        'Ajax Exception - ' + response.statusText + ' (' + response.status + ')',
+        '<pre>' + Ext.util.Format.htmlEncode(response.responseText) + '</pre>'
+      );
+    }
+  }
+  else {
+    // If we're here it means the request failed altogether, and didn't even
+    // send back a response with headers (server is down, network down, etc).
+    
+    // If this is an AutoPanel load request, take no action, since AutoPanel
+    // handles its own errors by showing them as its content: 
+    // (TODO - consolidate this handling)
+    if(options && options.scope && options.scope.AutoPanelId) {
+      return;
+    }
+    
+    // For all other types of Ajax requests (such as CRUD actions), display
+    // the error to the user in a standard window:
+    var msg = (response && response.statusText) ? 
+      response.statusText : 'unknown error';
+    return Ext.ux.RapidApp.showAjaxError(
+      'Ajax Request Failed',
+      '<div style="padding:10px;font-size:1.5em;color:navy;">&nbsp;&nbsp;' +
+        '<b>' + msg + '</b>' +
+      '&nbsp;</div>'
+    );
+  }
+}
+
+Ext.Ajax.on('requestexception',Ext.ux.RapidApp.ajaxException);
 Ext.Ajax.on('requestcomplete',Ext.ux.RapidApp.ajaxCheckException);
-Ext.Ajax.on('requestexception',Ext.ux.RapidApp.ajaxCheckException);
 Ext.Ajax.on('beforerequest',Ext.ux.RapidApp.ajaxRequestContentType);
+
 
 
 
@@ -1756,10 +1810,6 @@ Ext.ux.AutoPanel = Ext.extend(Ext.Panel, {
 			
       var retry_text = [
        'Please try again later.&nbsp;&nbsp;',
-       '<span',
-          'class="with-icon ra-icon-refresh ra-autopanel-reloader"',
-          'style="display:inline;vertical-align:baseline;padding-left:20px;"',
-       '>Click to Retry...</span>',
        '<div style=height:20px;"></div>',
        '<span style="font-size:.7em;">',
        '<i>If you continue to receive this message, please contact your ',
@@ -1804,14 +1854,15 @@ Ext.ux.AutoPanel = Ext.extend(Ext.Panel, {
 		Ext.ux.AutoPanel.superclass.doAutoLoad.call(this);
 	},
 	
-	initComponent: function() {
-		
-		// -- Make sure no highlighting can happen during load (this prevents highlight
-		//    bugs that can happen if we double-clicked something to spawn this panel)
-		var thisEl;
-		this.on('render',function(){
-			thisEl = this.getEl();
-			thisEl.addClass('no-text-select');
+  initComponent: function() {
+    
+    // -- Make sure no highlighting can happen during load (this prevents highlight
+    //    bugs that can happen if we double-clicked something to spawn this panel)
+    var thisEl;
+    this.on('render',function(){
+      thisEl = this.getEl();
+      thisEl.addClass('ra-ap-body');
+      thisEl.addClass('no-text-select');
       
       this.on('resize',this.setSafesizeClasses,this);
       this.setSafesizeClasses();
@@ -1819,10 +1870,13 @@ Ext.ux.AutoPanel = Ext.extend(Ext.Panel, {
       // Listen for clicks on custom 'ra-autopanel-reloader' elements
       // to fire reload of the panel. This provides inline access to
       // this function within the html/content of the panel. 
-      // (Added for Gitbut Issue #24)
+      // (Added for Github Issue #24)
       thisEl.on('click',function(e,t,o) {
         var target = e.getTarget(null,null,true);
         if(target && target.hasClass('ra-autopanel-reloader')) {
+        // in the case of nested AutoPanels, don't allow this event to
+        // bubble up higher:
+        e.stopEvent(); 
         this.reload();
         }
       }, this);
@@ -1835,12 +1889,12 @@ Ext.ux.AutoPanel = Ext.extend(Ext.Panel, {
 		},this);
 		// --
 
-		var container = this;
-		this.renderer = {
-			disableCaching: true,
-			render: function(el, response, updater, callback) {
-				if (!updater.isUpdating() && el.dom) {
-					
+    var container = this;
+    this.renderer = {
+      disableCaching: true,
+      render: function(el, response, updater, callback) {
+        if (!updater.isUpdating() && el.dom) {
+          
           var conf, content_type = response.getResponseHeader('Content-Type');
           var cont_parts = content_type.split(';');
           
@@ -1956,47 +2010,76 @@ Ext.ux.AutoPanel = Ext.extend(Ext.Panel, {
             conf.bodyCssClass = 'ra-scoped-reset';
           }
           
-					container.setBodyConf.call(container,conf,el);
-					
-					// This is legacy and should probably be removed:
-					if (conf.rendered_eval) { eval(conf.rendered_eval); }
-				}
-			}
-		};
+          // just for good measure, stop any existing auto refresh:
+          updater.stopAutoRefresh();
+          
+          container.setBodyConf.call(container,conf,el);
+          
+          // autopanel_refresh_interval can be set from either the inner
+          // dynamic panel, or hard-coded on the autopanel container itself:
+          var refresh_interval = 
+            container.autopanel_refresh_interval ||
+            conf.autopanel_refresh_interval;
+          
+          if(refresh_interval) {
+            updater.startAutoRefresh(
+              refresh_interval,
+              container.autoLoad
+            );
+          }
+          
+          // This is legacy and should probably be removed:
+          if (conf.rendered_eval) { eval(conf.rendered_eval); }
+        }
+      }
+    };
 
-		Ext.ux.AutoPanel.superclass.initComponent.call(this);
-	},
-	
-	setBodyConf: function(conf,thisEl) {
-		thisEl = thisEl || this.getEl();
-		if(this.items.getCount() > 0) { this.removeAll(true); }
-		this.insert(0,conf);
-		this.doLayout();
-	},
-	
-	setErrorBody: function(title,msg,opt) {
-		opt = opt || {};
-		opt = Ext.apply({
-			tabTitle: 'Load Failed',
-			tabIconCls: 'ra-icon-cancel',
-			html: '<div class="ra-autopanel-error" >' +
-				'<div class="ra-exception-heading">' + title + '</div>' +
-				'<div class="msg">' + msg + '</div>' +
-			'</div>'
-		},opt);
-		
-		opt.bodyConf = opt.bodyConf || {
-			layout: 'fit',
-			autoScroll: true,
-			frame: true,
-			xtype: 'panel',
-			html: opt.html
-		};
-		
-		this.setTitle(opt.tabTitle);
-		this.setIconClass(opt.tabIconCls);
-		this.setBodyConf(opt.bodyConf,this.getEl());
-	},
+    Ext.ux.AutoPanel.superclass.initComponent.call(this);
+  },
+
+  setBodyConf: function(conf,thisEl) {
+    thisEl = thisEl || this.getEl();
+    if(this.items.getCount() > 0) { this.removeAll(true); }
+    this.insert(0,conf);
+    this.doLayout();
+  },
+
+  setErrorBody: function(title,msg,opt) {
+    opt = opt || {};
+    opt = Ext.apply({
+      tabTitle: 'Load Failed',
+      tabIconCls: 'ra-icon-cancel',
+      html: [
+        '<div class="ra-autopanel-error">',
+          '<div class="ra-exception-heading">',
+            title,
+            '<span style="padding-left:20px;">',
+              '<a class="with-icon ra-icon-refresh ra-autopanel-reloader">',
+                '<span class="ra-autopanel-reloader">',
+                  'Reload',
+                '</span>',
+              '</a>',
+            '</span>',
+          '</div>',
+          '<div class="msg">',msg,'</div>',
+        '</div>'
+      ].join('')
+    },opt);
+    
+    opt.bodyConf = opt.bodyConf || {
+      layout: 'fit',
+      autoScroll: true,
+      frame: true,
+      xtype: 'panel',
+      html: opt.html
+    };
+    
+    if(!this.autopanel_ignore_tabtitle) {
+      this.setTitle(opt.tabTitle);
+      this.setIconClass(opt.tabIconCls);
+    }
+    this.setBodyConf(opt.bodyConf,this.getEl());
+  },
   
   reload: function() {
     this.load(this.autoLoad);

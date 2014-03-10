@@ -1,5 +1,20 @@
 /* Styles for inline Template editing (RapidApp::Template::Controller) */
 
+/* Templates directly within ExtJS Panel Bodys (i.e. Tabs)  
+   should fill the full area for max flexibility:    */
+.x-panel-body>.ra-template {
+  height: 100%;
+  width: 100%;
+}
+
+/* Special case for templates with template_css_class set to
+   'ra-doc' (default). Set the padding *only* on the topmost
+   template. This needs to be set here instead of in ra-doc.css
+   because we don't want it applied to nested templates */
+.ra-scoped-reset.ra-doc {
+  padding: 2px 5px;
+}
+
 .ra-template {
   position: relative;
   min-height: 40px;

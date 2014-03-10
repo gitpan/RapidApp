@@ -225,7 +225,23 @@ sub apply_TableSpec {
 	my ($pri) = ($self->primary_columns,$self->columns); #<-- first primary col, or first col
 	$self->TableSpec_set_conf(
 		display_column => $pri,
-		title => $table
+		title => $table,
+    
+    # --
+    # New: initialize the columns cnf key early. It doesn't even need all
+    # the columns (just at least one -- we're just doing the base columns
+    # and not bothering with relationships + virtual columns). This is
+    # just about getting the Hash defined so that later calls will update
+    # this hash rather than create a new one, which can get lost in certain
+    # situations (such as a Result Class that loads the TableSpec component
+    # in-line but does not apply any column configs). 
+    # This was needed added after the recent prelim TableSpec_cnf refactor (in v0.99030)
+    # which is a temp/in-between change that consolidates storage of column
+    # configs internally while still preserving the original API for now. 
+    # Yes, this is ugly/hackish but will go away as soon as the full-blown, 
+    # long-planned TableSpec refactor is undertaken...
+    columns => { map { $_ => {} } $self->columns }
+    # --
 	);
 	# ---
 	
@@ -322,14 +338,19 @@ sub default_TableSpec_cnf  {
 	my $rel_trans = {};
 	
 	$defaults{related_column_property_transforms} = $rel_trans;
-	
+  
+  
+  #my $defs = \%defaults;
+  #my $col_cnf = $self->default_TableSpec_cnf_columns($set);
+  #$defs = merge($defs,$col_cnf);
+  #return merge($defs, $set);  
+
+  %defaults = ( %defaults, %$set );
   my $defs = \%defaults;
-	
-	my $col_cnf = $self->default_TableSpec_cnf_columns($set);
+  my $col_cnf = $self->default_TableSpec_cnf_columns($defs);
+  $defs->{columns} = $col_cnf->{columns};
   
-	$defs = merge($defs,$col_cnf);
-  
-	return merge($defs, $set);
+  return $defs;
 }
 
 sub default_TableSpec_cnf_columns {
@@ -342,14 +363,17 @@ sub default_TableSpec_cnf_columns {
 	
 	my $cols = { map { $_ => {} } @col_order };
   
-	# lowest precidence:
-	$cols = merge($cols,$set->{data}->{column_properties_defaults} || {});
+  # lowest precidence:
+  #$cols = merge($cols,$set->{column_properties_defaults} || {});
+  %$cols = ( %$cols, %{ $set->{column_properties_defaults} || {}} );
 
-	$cols = merge($cols,$set->{column_properties_ordered} || {});
+  #$cols = merge($cols,$set->{column_properties_ordered} || {});
+  %$cols = ( %$cols, %{ $set->{column_properties_ordered} || {}} );
 		
 	# higher precidence:
-	$cols = merge($cols,$set->{column_properties} || {});
-
+	#$cols = merge($cols,$set->{column_properties} || {});
+  %$cols = ( %$cols, %{ $set->{column_properties} || {}} );
+  
 	my $data_types = $self->TableSpec_data_type_profiles;
 	#scream(keys %$cols);
 	
@@ -742,6 +766,32 @@ sub _TableSpec_set_column_properties {
   
   $self->TableSpec_cnf->{$_} = $col_props for (@col_prop_names);
 }
+
+
+# New function for updating/merging in column configs. This allows
+# setting certain column configs without overwriting existing config 
+# keys that are not being specified:
+sub TableSpec_merge_columns_conf {
+  my $self = shift;
+  my $conf = shift;
+  
+  die "TableSpec_merge_columns_conf( \%columns ): bad args"
+    unless (ref($conf) eq 'HASH');
+  
+  my $existing = $self->TableSpec_get_conf('columns') || {};
+  
+  my @cols = uniq( keys %$conf, keys %$existing );
+  
+  my %new = ( map {
+    $_ => {
+      %{ $existing->{$_} || {} },
+      %{ $conf->{$_} || {} },
+    }
+  } @cols );
+  
+  return $self->TableSpec_set_conf( columns => \%new );
+}
+
 
 
 sub TableSpec_get_conf {

@@ -7,6 +7,13 @@ use RapidApp::Include 'sugar', 'perlutil';
 
 use base 'Catalyst::View::TT';
 
+# DEPRECATED - TO BE REMOVED - Github Issue #41
+
+1;
+
+__END__
+
+
 =head1 NAME
 
 RapidApp::View::HttpStatus

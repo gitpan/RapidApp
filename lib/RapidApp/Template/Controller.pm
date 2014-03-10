@@ -88,7 +88,7 @@ sub _new_Template {
   my ($self,$opt) = @_;
   Module::Runtime::require_module($self->context_class);
   Module::Runtime::require_module($self->provider_class);
-  return Template->new({ 
+  return Template->new({
     CONTEXT => $self->context_class->new({
       Controller => $self,
       Access => $self->Access,
@@ -236,18 +236,43 @@ sub view :Local {
     
   local $self->{_current_context} = $c;
   
+  # Track the top-level template that is being viewed, in case the Access class
+  # wants to treat top-level templates differently from nested templates
+  #   -- see currently_viewing_template() in RapidApp::Template::Access
+  local $self->{_viewing_template} = $template;
+  
   $self->Access->template_viewable($template)
     or die "Permission denied - template '$template'";
 
   my $ra_req = $c->req->header('X-RapidApp-RequestContentType');
-
+  my $ra_client = ($ra_req && $ra_req eq 'JSON');
   my $external = $self->is_external_template($c,$template);
-  my $iframe = $external || $self->is_iframe_request($c); # <-- external must use iframe
   my $editable = $self->is_editable_request($c);
   
+  # ---
+  # New: for non-external templates which are being accessed externally, 
+  # (i.e. directly from browser) redirect to internal hashnav path:
+  unless ($external || $ra_client) {
+    my $pre = $editable ? 'tple' : 'tpl';
+    my $url = join('/','/#!',$pre,@args);
+    my %params = %{$c->req->params};
+    if(keys %params > 0) {
+      my $qs = join('&',map { $_ . '=' . uri_escape($params{$_}) } keys %params);
+      $url .= '?' . $qs;
+    }
+    $c->response->redirect($url);
+    return $c->detach;
+  }
+  #---
+  
+  my $iframe = $external || $self->is_iframe_request($c); # <-- external must use iframe
   my ($output,$content_type);
   
-  if($ra_req && $ra_req eq 'JSON') {
+  my @cls = ('ra-scoped-reset');
+  my $tpl_cls = $self->Access->template_css_class($template);
+  push @cls, $tpl_cls if ($tpl_cls);
+  
+  if($ra_client) {
     # This is a call from within ExtJS, wrap divs to id the templates from javascript
     
     my $cnf = {};
@@ -287,7 +312,7 @@ sub view :Local {
       $cnf = {
         xtype => 'panel',
         autoScroll => \1,
-        bodyCssClass => 'ra-scoped-reset',
+        bodyCssClass => join(' ',@cls),
         
         # try to set the title/icon by finding/parsing <title> in the 'html'
         autopanel_parse_title => \1,
@@ -296,7 +321,10 @@ sub view :Local {
         tabTitle => join('/',@args), #<-- not using $template to preserve the orig req name
         tabIconCls => 'ra-icon-page-white-world',
         
-        html => $html
+        html => $html,
+        
+        # Load any extra, template-specific configs from the Access class:
+        %{ $self->Access->template_autopanel_cnf($template) || {} }
       };
     }
     
@@ -354,7 +382,7 @@ sub view :Local {
     # this is *not* an external template:
     $output = $external ? join("\n",@head,$html) : join("\n",
       '<head>', @head, '</head>',
-      '<div class="ra-scoped-reset">', $html, '</div>'
+      '<div class="' . join(' ',@cls) . '">', $html, '</div>'
     );
     
     $content_type = 'text/html; charset=utf-8';
@@ -376,6 +404,12 @@ sub get :Local {
     or return $self->_detach_response($c,403,"Permission denied - template '$template'");
   
   my ($data, $error) = $self->get_Provider->load($template);
+  
+  return $self->_detach_response($c,400,"Failed to get template '$template'")
+    unless (defined $data);
+  
+  # Decode as UTF-8 for user consumption:
+  utf8::decode($data); 
   
   return $self->_detach_response($c,200,$data);
 }
@@ -401,6 +435,9 @@ sub set :Local {
     my $err = $self->_get_template_error('Template_raw',\$content,$c);
     return $self->_detach_response($c,418,$err) if ($err);
   }
+  
+  # Encode the template content in UTF-8
+  utf8::encode($content);
   
   $self->get_Provider->update_template($template,$content);
   
@@ -460,7 +497,7 @@ sub _render_template {
   my $TT = $self->$meth;
   local $self->{_current_context} = $c;
   local $self->{_div_wrap} = 1 if ($meth eq 'Template_wrap');
-  my $vars = $self->Access->get_template_vars($template);
+  my $vars = $self->get_wrapped_tt_vars($template);
   my $output;
   
   # TODO/FIXME: this is duplicate logic that has to be handled for the
@@ -481,7 +518,7 @@ sub _get_template_error {
   my $TT = $self->$meth;
   local $self->{_current_context} = $c;
   local $self->{_div_wrap} = 1 if ($meth eq 'Template_wrap');
-  my $vars = $self->Access->get_template_vars($template);
+  my $vars = $self->get_wrapped_tt_vars($template);
   my $output;
   local $self->{_no_exception_error_content} = 1;
   return $TT->process( $template, $vars, \$output ) ? undef : $TT->error;
@@ -506,7 +543,7 @@ sub template_render {
   # to have access to the catalyst context (i.e. request) so
   # we only call it and merge it in if we have $c, which is
   # optional in this method
-  %$vars = (%{ $self->Access->get_template_vars($template) }, %$vars) 
+  %$vars = (%{ $self->get_wrapped_tt_vars($template) }, %$vars) 
     if ($c);
   
   my $TT = $self->Template_raw;
@@ -515,6 +552,47 @@ sub template_render {
 	$TT->process($template,$vars,\$out) or die $TT->error;
 
 	return $out;
+}
+
+
+# Wraps all CodeRef vars to cleanly catch exceptions that may be
+# thrown by them. TT isn't able to handle them properly...
+sub get_wrapped_tt_vars {
+  my ($self,$template) = @_;
+  my $vars = $self->Access->get_template_vars($template);
+  
+  die "Access class method 'get_template_vars()' didn't return a HashRef!"
+    unless (ref($vars) eq 'HASH');
+  
+  for my $var (keys %$vars) {
+    next unless (ref($vars->{$var}) eq 'CODE');
+    my $coderef = delete $vars->{$var};
+    $vars->{$var} = sub {
+      my @args = @_;
+      my $ret;
+      try {
+        $ret = $coderef->(@args);
+      }
+      catch {
+        my $err_msg = "!! EXCEPTION IN CODEREF TEMPLATE VARIABLE '$var': $_";
+        
+        # TODO/FIXME:
+        # We set the return value with the exception as a string (i.e. as content) 
+        # instead of re-throwing because TT will display a useless and confusing 
+        # error message, something like: "...Useless bare catch()..."
+        $ret = $err_msg;
+        
+        # We may not actually be able to see the error in the template rendering
+        # but at least it will be printed on the console (an exception here isn't
+        # actually a *Template* error, per-se ... its an error in the perl code 
+        # that is called by this CodeRef)
+        warn RED.BOLD . $err_msg . CLEAR;
+      };
+      return $ret;
+    };
+  }
+  
+  return $vars;
 }
 
 1;

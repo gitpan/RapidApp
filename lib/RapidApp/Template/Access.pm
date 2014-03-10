@@ -33,6 +33,12 @@ has 'Controller', is => 'ro', required => 1, isa => InstanceOf['RapidApp::Templa
 # in this (or derived) class:
 sub catalyst_context { (shift)->Controller->{_current_context} }
 
+# This will be the top-level template name that is being viewed from
+# the controller, in case different Access rules need to be applied
+# for templates that are being INCLUDED within another template vs
+# being viewed/accessed directly.
+sub currently_viewing_template { (shift)->Controller->{_viewing_template} }
+
 # -----
 # Optional *global* settings to toggle access across the board
 
@@ -130,6 +136,15 @@ has 'external_tpl', is => 'ro', lazy => 1, default => sub {
   ) ? 1 : 0;
 }, isa => Bool;
 
+# New: default CSS class name to return for every template (called from template_css_class())
+# unless this is set to 'undef', this class name will be added to the div wrapper when
+# rendering the template (along with 'ra-template'). This attr will have no effect if
+# the 'template_css_class' method is overridden.
+# For backward compatability, this is currently set to 'ra-doc' for out-of-the-box nice styles
+# without needing to set a config, however, a default of undef might make more sense.
+# currently, apps will need to manually set this to undef to avoid the default styles, which
+# is needed when there are better/custom styles.
+has 'default_template_css_class', is => 'ro', isa => Maybe[Str], default => sub { 'ra-doc' };
 
 # Optional CodeRef interfaces:
 has 'get_template_vars_coderef', is => 'ro', isa => Maybe[CodeRef], default => sub {undef};
@@ -280,6 +295,14 @@ sub _get_admin_template_vars {
 }
 
 
+# Returns a hashref of optional overrides for the Ext panel config
+# returned when rendering the template via AutoPanel (i.e. tab). This
+# is useful for places where you need to set template-specific options,
+# such as setting 'autopanel_refresh_interval' if you want one
+# specific template to auto refresh. This has no effect when rendered
+# any place other than within AutoPanels in the JS client via the
+# Template::Controller.
+sub template_autopanel_cnf { {} }
 
 
 # Simple bool permission methods:
@@ -389,6 +412,13 @@ sub get_template_format {
   return 'html';
 }
 
+# Returns an optional css class name associated with a given template
+# that should be added to teh div wrapper when rendering the template
+sub template_css_class {
+  my ($self,@args) = @_;
+  my $template = join('/',@args);
+  return $self->default_template_css_class;
+}
 
 
 1;

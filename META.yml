@@ -14,19 +14,16 @@ meta-spec:
   version: 1.4
 name: RapidApp
 requires:
-  AnyEvent: 0
-  AnyEvent::Handle: 0
-  AnyEvent::Util: 0
   Attribute::Handlers: 0
   CSS::Inliner: 0
   CSS::Simple: 0
   CSS::Tiny: 0
   Carp: 0
   Carp::Clan: 6.04
-  Catalyst: 5.90042
   Catalyst::Action: 0
   Catalyst::Action::RenderView: 0.16
   Catalyst::Authentication::Store::DBIx::Class: 0.1505
+  Catalyst::Component::ApplicationAttribute: 0
   Catalyst::Controller: 0
   Catalyst::Controller::AutoAssets: 0.24
   Catalyst::Devel: 1.39
@@ -38,13 +35,13 @@ requires:
   Catalyst::Plugin::AutoAssets: 0
   Catalyst::Plugin::Session::State::Cookie: 0.17
   Catalyst::Plugin::Session::Store::DBIC: 0.14
+  Catalyst::Runtime: 5.90061
   Catalyst::Utils: 0
   Catalyst::View: 0
   Catalyst::View::TT: 0
   CatalystX::InjectComponent: 0
   Class::MOP::Class: 0
   Clone: 0
-  Cwd: 0
   DBIx::Class: 0.08270
   DBIx::Class::Core: 0
   DBIx::Class::PassphraseColumn: 0.02
@@ -56,20 +53,15 @@ requires:
   DateTime::Format::Flexible: 0
   DateTime::Format::SQLite: 0
   Devel::NYTProf: 0
-  Devel::StackTrace: 0
-  Devel::StackTrace::AsHTML: 0
   Devel::StackTrace::WithLexicals: 0
   Digest::MD5: 0
   Digest::SHA1: 0
   Email::MIME: 0
   Email::MIME::CreateHTML: 0
   Email::MIME::CreateHTML::Resolver::LWP: 0
-  Encode: 2.21
-  Errno: 0
+  Encode: 0
   Excel::Writer::XLSX: 0
-  Exception::Class: 0
   Exporter: 0
-  Fcntl: 0
   File::MimeInfo::Magic: 0
   File::ShareDir: 0
   FindBin: 0
@@ -83,7 +75,6 @@ requires:
   IO::All: 0
   IO::File: 0
   IO::Handle: 0
-  Image::Resize: 0
   Image::Size: 0
   JSON: 0
   JSON::PP: 0
@@ -104,24 +95,21 @@ requires:
   MooseX::NonMoose: 0
   MooseX::Traits: 0
   MooseX::Types::Moose: 0
-  POSIX: 0
   PPI: 0
   PPI::HTML: 0
   Params::Validate: 0
   Path::Class: 0
-  Plack: 1.0029
+  Plack: 1.0030
+  RapidApp::BgTask::TaskPool: 0
   SQL::Translator: 0.11016
   Scalar::Util: 0
-  Socket: 0
   Spreadsheet::ParseExcel: 0
   Spreadsheet::ParseExcel::Utility: 0
   Spreadsheet::WriteExcel: 0
   Storable: 0
   String::Random: 0
   Sub::Name: 0
-  Sub::Quote: 0
   Switch: 0
-  System::Command: 0
   Template: 2.25
   Template::Context: 0
   Template::Provider: 0
@@ -139,7 +127,6 @@ requires:
   autodie: 0
   base: 0
   bytes: 0
-  constant: 0
   integer: 0
   namespace::autoclean: 0
   overload: 0
@@ -148,4 +135,4 @@ requires:
 resources:
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99031
+version: 0.99100

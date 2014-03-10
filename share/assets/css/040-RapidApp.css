@@ -218,6 +218,44 @@ a.ra-icon-magnify-tiny:hover span {
 	visibility: visible;
 }
 
+
+a.ra-icon-refresh-tiny {
+  /* -- for IE, magic!! Without this, the "filter/opacity" is ignored and other misc problems,
+   this magically makes the element have a "Layout"
+   see: http://www.satzansatz.de/cssd/onhavinglayout.html,
+    http://www.bennadel.com/blog/1354-The-Power-Of-ZOOM-Fixing-CSS-Issues-In-Internet-Explorer.htm   */
+  zoom: 1; 
+  /* -- */
+  
+  background-repeat:no-repeat;
+  background-position: 0% 90%;
+  padding-left: 10px;
+  margin-left: 2px;
+  margin-bottom: 2px;
+  font-size: 9px;
+  font-family: "Helvetica Narrow","Arial Narrow",Tahoma,Arial,Helvetica,sans-serif;
+  text-decoration: none;
+  border-bottom: 0px transparent;
+  color: transparent;
+  opacity:0.4;
+  filter:alpha(opacity=40); /* For IE8 and earlier */
+}
+a.ra-icon-refresh-tiny:hover {
+  margin-bottom: 1px;
+  border-bottom: 1px dotted;
+  color: blue;
+  opacity:1.0;
+  filter:alpha(opacity=100); /* For IE8 and earlier */
+}
+.ra-ap-body a.ra-icon-refresh-tiny span, a.ra-icon-refresh-tiny span {
+  visibility: hidden;
+}
+a.ra-icon-refresh-tiny:hover span {
+  visibility: visible;
+}
+
+
+
 .superscript-navy {
   color: navy;
   font-weight: lighter; 
@@ -1292,6 +1330,12 @@ text-align: left!important; font: 120%  "Lucida Grande", "Lucida Sans Unicode", 
   display: block;
   width:99px;
   height:14px;
+  float:left;
+}
+
+.ra-footer td a.ra-autopanel-reloader {
+  margin-left:7px;
+  margin-bottom: 5px;
 }
 
 .ra-footer td.center {
@@ -1301,6 +1345,7 @@ text-align: left!important; font: 120%  "Lucida Grande", "Lucida Sans Unicode", 
 .ra-footer td.right {
   text-align:right;
 }
+
 
 
 .ra-datastore-app-field {
@@ -1376,6 +1421,12 @@ text-align: left!important; font: 120%  "Lucida Grande", "Lucida Sans Unicode", 
   padding-bottom:15px;
 }
 
+.ra-exception-heading .ra-icon-refresh {
+  font-weight:normal;
+  vertical-align:baseline;
+  font-family: Consolas,Menlo,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,monospace,serif;
+}
+
 .ra-exception-body * {
   word-wrap: break-word;
 }
@@ -1389,7 +1440,6 @@ text-align: left!important; font: 120%  "Lucida Grande", "Lucida Sans Unicode", 
 }
 
 .ra-autopanel-error {
-  padding: 10px;
   font-size: 1.2em;
   position:absolute;
   top: 0px;
@@ -1404,7 +1454,7 @@ text-align: left!important; font: 120%  "Lucida Grande", "Lucida Sans Unicode", 
   font-family: Consolas,Menlo,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,monospace,serif;
   color: gray;
   position:absolute;
-  top: 55px;
+  top: 45px;
   right: 0px;
   bottom: 0px;
   left:0px;
@@ -1591,6 +1641,11 @@ a:hover, a:hover * { cursor: pointer; }
   word-wrap: break-word;
   text-align: center;
 }
+
+
+/* Hide autopanel reloaders unless they are within an AutoPanel*/
+.ra-autopanel-reloader             { visibility: hidden; }
+.ra-ap-body .ra-autopanel-reloader  { visibility: visible; }
 
 
 .ra-autopanel-reloader {

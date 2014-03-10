@@ -59,12 +59,8 @@ lib/RapidApp/AppTemplateTree.pm
 lib/RapidApp/AppTree.pm
 lib/RapidApp/AppTreeExplorer.pm
 lib/RapidApp/AttributeHandlers.pm
-lib/RapidApp/BgTask/MsgPipe.pm
-lib/RapidApp/BgTask/MsgPipeNB.pm
-lib/RapidApp/BgTask/Supervisor.pm
-lib/RapidApp/BgTask/Task.pm
-lib/RapidApp/BgTask/TaskPool.pm
 lib/RapidApp/BgTaskInterface.pm
+lib/RapidApp/Catalyst.pm
 lib/RapidApp/CatalystX/Profile.pm
 lib/RapidApp/CatalystX/Profile/Controller/ControlProfiling.pm
 lib/RapidApp/CatalystX/SimpleCAS.pm
@@ -137,7 +133,6 @@ lib/RapidApp/DbicAppGrid2.pm
 lib/RapidApp/DbicAppGrid3.pm
 lib/RapidApp/DbicAppGridSelector.pm
 lib/RapidApp/DbicAppPropertyPage.pm
-lib/RapidApp/DbicErrorStore.pm
 lib/RapidApp/DbicExtQuery.pm
 lib/RapidApp/DbicSchemaGrid.pm
 lib/RapidApp/DbicTemplate.pm
@@ -150,10 +145,6 @@ lib/RapidApp/DirectLink/Redirector.pm
 lib/RapidApp/Error.pm
 lib/RapidApp/Error/CustomPrompt.pm
 lib/RapidApp/Error/UserError.pm
-lib/RapidApp/ErrorBrowse.pm
-lib/RapidApp/ErrorCommentHandler.pm
-lib/RapidApp/ErrorReport.pm
-lib/RapidApp/ErrorView.pm
 lib/RapidApp/ExtJS.pm
 lib/RapidApp/ExtJS/BASEConfigObject.pm
 lib/RapidApp/ExtJS/Button.pm
@@ -170,7 +161,6 @@ lib/RapidApp/ExtJS/StaticGrid.pm
 lib/RapidApp/ExtJS/SubmitForm.pm
 lib/RapidApp/ExtJS/TreeNode.pm
 lib/RapidApp/ExtJS/TreePanel.pm
-lib/RapidApp/FileErrorStore.pm
 lib/RapidApp/Functions.pm
 lib/RapidApp/HTML/RawHtml.pm
 lib/RapidApp/HTML/Snippet.pm
@@ -182,7 +172,6 @@ lib/RapidApp/JSON/RawJavascript.pm
 lib/RapidApp/JSON/ScriptWithData.pm
 lib/RapidApp/JSONFunc.pm
 lib/RapidApp/Layout/BannerBody.pm
-lib/RapidApp/Log.pm
 lib/RapidApp/Manual.pod
 lib/RapidApp/Manual/Assets.pod
 lib/RapidApp/Manual/TableSpec.pod
@@ -208,7 +197,6 @@ lib/RapidApp/Role/DataStore2/SavedSearch.pm
 lib/RapidApp/Role/DbicLink.pm
 lib/RapidApp/Role/DbicLink2.pm
 lib/RapidApp/Role/DbicRowPage.pm
-lib/RapidApp/Role/ErrorReportStore.pm
 lib/RapidApp/Role/GridColParam.pm
 lib/RapidApp/Role/Module.pm
 lib/RapidApp/Role/PerRequestBuildDefReset.pm
@@ -217,14 +205,9 @@ lib/RapidApp/Role/SessionVar.pm
 lib/RapidApp/Role/SessionVarAutoload.pm
 lib/RapidApp/Role/SystemAccount.pm
 lib/RapidApp/RootModule.pm
-lib/RapidApp/ScopedGlobals.pm
 lib/RapidApp/Spreadsheet/ExcelTableReader.pm
 lib/RapidApp/Spreadsheet/ExcelTableWriter.pm
 lib/RapidApp/Spreadsheet/ParseExcelExt.pm
-lib/RapidApp/StructuredIO/Reader.pm
-lib/RapidApp/StructuredIO/ReaderNB.pm
-lib/RapidApp/StructuredIO/Writer.pm
-lib/RapidApp/StructuredIO/WriterNB.pm
 lib/RapidApp/Sugar.pm
 lib/RapidApp/TableSpec.pm
 lib/RapidApp/TableSpec/ColSpec.pm
@@ -236,7 +219,6 @@ lib/RapidApp/Template/Access/Dummy.pm
 lib/RapidApp/Template/Context.pm
 lib/RapidApp/Template/Controller.pm
 lib/RapidApp/Template/Provider.pm
-lib/RapidApp/TraceCapture.pm
 lib/RapidApp/Tree.pm
 lib/RapidApp/View/HttpStatus.pm
 lib/RapidApp/View/JSON.pm
@@ -254,6 +236,8 @@ lib/RapidApp/Web1RenderContext/RenderFunction.pm
 lib/RapidApp/Web1RenderContext/RenderHandler.pm
 lib/RapidApp/Web1RenderContext/Renderer.pm
 script/rapidapp_cas_copy.pl
+share/assets/css-scoped/ra-doc.css
+share/assets/css-scoped/ra-scoped-reset.css
 share/assets/css/010-Ext.ux.tree.CheckTreePanel.css
 share/assets/css/011-Ext.ux.grid.RowActions.css
 share/assets/css/020-htmleditorplugins.css
@@ -263,7 +247,6 @@ share/assets/css/030-tabular-table.css
 share/assets/css/040-RapidApp.css
 share/assets/css/050-gridsummary.css
 share/assets/css/060-GenericChangePW.css
-share/assets/css/100-ra-doc.css
 share/assets/css/110-Template-Controller.css
 share/assets/filelink/filelink.css
 share/assets/filelink/music_14x14.png
@@ -424,6 +407,7 @@ share/assets/icons/reboot-240.gif
 share/assets/icons/reboot.png
 share/assets/icons/refresh.gif
 share/assets/icons/refresh_24x24.png
+share/assets/icons/refresh_tiny.png
 share/assets/icons/remove_sort.png
 share/assets/icons/report.png
 share/assets/icons/resultset_next.png
@@ -648,7 +632,6 @@ share/assets/misc/login/img/ui.totop.png
 share/assets/misc/login/index.html
 share/assets/misc/login/powered_intellitree_footer.png
 share/assets/misc/s.gif
-share/assets/ra-scoped-reset.css
 share/templates/rapidapp/README.md
 share/templates/rapidapp/default_root_template.html
 share/templates/rapidapp/exception.tt
