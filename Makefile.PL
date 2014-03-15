@@ -113,11 +113,9 @@ my %WriteMakefileArgs = (
     "Scalar::Util" => 0,
     "Spreadsheet::ParseExcel" => 0,
     "Spreadsheet::ParseExcel::Utility" => 0,
-    "Spreadsheet::WriteExcel" => 0,
     "Storable" => 0,
     "String::Random" => 0,
     "Sub::Name" => 0,
-    "Switch" => 0,
     "Template" => "2.25",
     "Template::Context" => 0,
     "Template::Provider" => 0,
@@ -141,7 +139,7 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "0.99101",
+  "VERSION" => "0.99102",
   "test" => {
     "TESTS" => ""
   }

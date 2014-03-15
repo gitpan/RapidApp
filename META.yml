@@ -104,11 +104,9 @@ requires:
   Scalar::Util: 0
   Spreadsheet::ParseExcel: 0
   Spreadsheet::ParseExcel::Utility: 0
-  Spreadsheet::WriteExcel: 0
   Storable: 0
   String::Random: 0
   Sub::Name: 0
-  Switch: 0
   Template: 2.25
   Template::Context: 0
   Template::Provider: 0
@@ -134,4 +132,4 @@ requires:
 resources:
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99101
+version: 0.99102
