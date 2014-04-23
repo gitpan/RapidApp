@@ -13,7 +13,18 @@ install_share dist => "share";
 my %WriteMakefileArgs = (
   "ABSTRACT" => "Turnkey ajaxy webapps",
   "AUTHOR" => "Henry Van Styn <vanstyn\@cpan.org>",
-  "BUILD_REQUIRES" => {},
+  "BUILD_REQUIRES" => {
+    "Catalyst" => 0,
+    "Catalyst::Runtime" => "5.80",
+    "Catalyst::ScriptRunner" => 0,
+    "Module::Install::Catalyst" => 0,
+    "MooseX::MarkAsMethods" => 0,
+    "Test::More" => 0,
+    "TestRA::ChinookDemo" => 0,
+    "TestRA::ChinookDemo::Model::DB" => 0,
+    "inc::Module::Install" => 0,
+    "utf8" => 0
+  },
   "CONFIGURE_REQUIRES" => {
     "ExtUtils::MakeMaker" => "6.30",
     "File::ShareDir::Install" => "0.03"
@@ -34,12 +45,11 @@ my %WriteMakefileArgs = (
     "Catalyst::Authentication::Store::DBIx::Class" => "0.1505",
     "Catalyst::Component::ApplicationAttribute" => 0,
     "Catalyst::Controller" => 0,
-    "Catalyst::Controller::AutoAssets" => "0.24",
+    "Catalyst::Controller::AutoAssets" => "0.25",
     "Catalyst::Devel" => "1.39",
     "Catalyst::Log" => 0,
     "Catalyst::Model" => 0,
     "Catalyst::Model::DBIC::Schema" => 0,
-    "Catalyst::Model::DBIC::Schema::Types" => 0,
     "Catalyst::Plugin::Authorization::Roles" => "0.09",
     "Catalyst::Plugin::AutoAssets" => 0,
     "Catalyst::Plugin::Session::State::Cookie" => "0.17",
@@ -56,6 +66,7 @@ my %WriteMakefileArgs = (
     "DBIx::Class::PassphraseColumn" => "0.02",
     "DBIx::Class::ResultSet" => 0,
     "DBIx::Class::Schema" => 0,
+    "DBIx::Class::Schema::Diff" => "1.00",
     "DBIx::Class::Schema::Loader" => "0.07036",
     "Data::Dumper" => 0,
     "DateTime" => 0,
@@ -139,9 +150,9 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "0.99104",
+  "VERSION" => "0.99200",
   "test" => {
-    "TESTS" => ""
+    "TESTS" => "t/*.t"
   }
 );
 

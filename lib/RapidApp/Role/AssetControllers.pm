@@ -15,7 +15,7 @@ use Path::Class qw(dir);
 use RapidApp;
 use JavaScript::ExtJS::V3;
 
-use Catalyst::Controller::AutoAssets 0.24;
+use Catalyst::Controller::AutoAssets 0.25;
 with 'Catalyst::Plugin::AutoAssets';
 
 sub get_extjs_dir { JavaScript::ExtJS::V3->dir->stringify }
@@ -105,14 +105,20 @@ before 'inject_asset_controllers' => sub {
     $c->config->{'Model::RapidApp'}->{auto_local_assets}
   ) ? 1 : 0;
   
+  my $home = dir( Catalyst::Utils::home($c) );
+  
+  # We can't setup auto local assets if we have no home dir:
+  $auto_setup = 0 unless ($home && -d $home);
+  
   if($auto_setup) {
   
     # New, automatic 'local_asset_dir' can now be specified via config:
-    my $dir = $c->config->{'Model::RapidApp'}
-      ->{local_assets_dir} || 'root/assets';
+    my $dir = dir(
+      $c->config->{'Model::RapidApp'}->{local_assets_dir} || 'root/assets'
+    );
     
     # If relative, make relative to app home:
-    $dir = $dir =~ /^\// ? dir($dir) : dir($c->config->{home})->subdir($dir);
+    $dir = $home->subdir($dir) if ($dir->is_relative);
     
     # Add local assets if asset include dirs exist in the App directory
     push @$assets, {
