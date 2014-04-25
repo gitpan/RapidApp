@@ -199,6 +199,7 @@ lib/RapidApp/Template/Access/Dummy.pm
 lib/RapidApp/Template/Context.pm
 lib/RapidApp/Template/Controller.pm
 lib/RapidApp/Template/Provider.pm
+lib/RapidApp/Test.pm
 lib/RapidApp/Test/EnvUtil.pm
 lib/RapidApp/Tree.pm
 lib/RapidApp/View/HttpStatus.pm

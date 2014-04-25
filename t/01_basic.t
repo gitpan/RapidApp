@@ -9,20 +9,131 @@ use RapidApp::Test::EnvUtil;
 BEGIN { $ENV{TMPDIR} or RapidApp::Test::EnvUtil::set_tmpdir_env() }
 
 use Test::More;
+use Test::HTML::Content;
+
+use RapidApp::Test 'TestRA::ChinookDemo';
+
+run_common_tests();
 
 ok(
-  use_ok('Catalyst::Test', 'TestRA::ChinookDemo'),
-  "  * Loaded testapp 'TestRA::ChinookDemo' (via Catalyst::Test)"
+  my $root_cnt = get('/'),
+  'Fetch (GET) root document URL "/"'
 );
 
-action_ok(
-  '/assets/rapidapp/misc/static/images/rapidapp_powered_logo_tiny.png',
-  "Fetched RapidApp logo from the Misc asset controller"
+title_ok   ($root_cnt => 'TestRA::ChinookDemo', "root document has expected HTML <title>");
+
+# TODO: do deeper inspection of $root_url_content, follow link tags, etc
+
+my $decoded = (ajax_post_decode(
+  '/main/db/nodes',
+  [ node => 'root' ],
+  "Fetch main navtree nodes"
+) || [])->[0] || {};
+
+my $child_nodes = $decoded->{children} || [];
+my @node_ids = map {
+  ref $_ && ref $_ eq 'HASH' ? $_->{id} : ()
+} @$child_nodes;
+
+is_deeply(
+  \@node_ids,
+  [
+    "db_album",
+    "db_artist",
+    "db_customer",
+    "db_employee",
+    "db_genre",
+    "db_invoice",
+    "db_invoiceline",
+    "db_mediatype",
+    "db_playlist",
+    "db_playlisttrack",
+    "db_track"
+  ],
+  "Got expected nodes from the main navtree"
 );
 
-action_notfound(
-  '/assets/rapidapp/misc/static/some/bad/file.txt',
-  "Invalid asset path not found as expected"
+# TODO: we're not doing any real content testing here because the 
+# returned content is *JavaScript* - not valid JSON - and we
+# don't have a decoder for it yet. It is almost JSON, but
+# contains raw function() definitions that JSON::PP can't
+# handle. So, we're just making sure
+my $genre_grid = ajax_get_raw(
+  '/main/db/db_genre',
+  "Fetch genre grid"
 );
+
+ok(
+  $genre_grid =~ qr!/main/db/db_genre/store/read!,
+  "Saw expected string within returned genre grid content"
+);
+
+# This simulates what a DataStore read currently looks like:
+my $genre_read = ajax_post_decode(
+  '/main/db/db_genre/store/read', [
+             columns => '["genreid","name","tracks"]',
+             fields  => '["genreid","name"]',
+             limit   => '25',
+             query   => '',
+    quicksearch_mode => 'like',
+             start   => '0'
+  ]
+);
+
+# We need to clear this because its value can vary:
+$genre_read->{query_time} and $genre_read->{query_time} = undef;
+
+# Delete for now because of blessed object response:
+$genre_read->{success} and delete $genre_read->{success};
+
+is_deeply(
+  $genre_read,
+  {
+    metaData => {
+      fields => [
+        {
+          name => "genreid"
+        },
+        {
+          name => "name"
+        },
+        {
+          name => "tracks"
+        },
+        {
+          name => "loadContentCnf"
+        },
+        {
+          name => "___record_pk"
+        }
+      ],
+      idProperty => "___record_pk",
+      loaded_columns => [
+        "genreid",
+        "name",
+        "tracks",
+        "loadContentCnf",
+        "___record_pk"
+      ],
+      messageProperty => "msg",
+      root => "rows",
+      successProperty => "success",
+      totalProperty => "results"
+    },
+    query_time => undef,
+    results => 0,
+    rows => [],
+    #success => bless( do{\(my $o = 1)}, 'JSON::XS::Boolean' )
+  },
+  "Got expected genre_grid store read data (empty)"
+);
+
 
 done_testing;
+
+# -- for debugging:
+#
+#use Data::Dumper::Concise;
+#print STDERR "\n\n" . Dumper(
+#  $genre_read
+#) . "\n\n";
