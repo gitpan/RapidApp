@@ -4,19 +4,22 @@ author:
   - 'Henry Van Styn <vanstyn@cpan.org>'
 build_requires:
   Catalyst: 0
-  Catalyst::Runtime: 5.80
+  Catalyst::Runtime: 5.90061
   Catalyst::ScriptRunner: 0
+  HTTP::Headers::Util: 0
   Module::Install::Catalyst: 0
-  MooseX::MarkAsMethods: 0
+  MooseX::MarkAsMethods: 0.15
   Test::HTML::Content: 0
+  Test::Kwalitee: 0
   Test::More: 0
   inc::Module::Install: 0
+  lib: 0
   utf8: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.30
   File::ShareDir::Install: 0.03
 dynamic_config: 0
-generated_by: 'Dist::Zilla version 4.300028, CPAN::Meta::Converter version 2.120921'
+generated_by: 'Dist::Zilla version 5.015, CPAN::Meta::Converter version 2.140640'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -92,6 +95,7 @@ requires:
   JSON::PP: 0
   JSON::XS: 0
   JavaScript::ExtJS::V3: v3.4.1
+  LWP::UserAgent: 0
   MIME::Base64: 0
   MRO::Compat: 0
   Module::Find: 0
@@ -132,6 +136,7 @@ requires:
   Text::Wrap: 0
   Time::HiRes: 0
   Try::Tiny: 0
+  Types::Standard: 0
   URI::Escape: 0
   autodie: 0
   base: 0
@@ -142,6 +147,7 @@ requires:
   strict: 0
   warnings: 0
 resources:
+  bugtracker: https://github.com/vanstyn/RapidApp/issues
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99201
+version: 0.99202

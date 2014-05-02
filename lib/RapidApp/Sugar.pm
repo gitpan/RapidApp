@@ -163,12 +163,13 @@ Last argument is a hash of data that should be saved for the error report.
 ( the last argument is equivalent to a value for an implied hash key of "data" )
 
 Examples:
+
   # Die with a custom user-facing message (in plain text), and a title made of html.
   die userexception "Description of what shouldn't have happened", title => rawhtml "<h1>ERROR</h1>";
   
   # Capture some data for the error report, as we show this message to the user.
   die userexception "Description of what shouldn't have happened", $some_debug_info;
-  
+
 =cut
 
 sub userexception {
@@ -197,9 +198,16 @@ sub userexception {
 	return RapidApp::Error->new(\%args);
 }
 
-# debug stuff to the log
+# Emulate legacy calls to 'DEBUG' for now:
 sub DEBUG {
-  warn join(' ',@_);
+  my @args = @_;
+  my $c = RapidApp->active_request_context;
+  if($c) {
+    $c->log->debug(join(' ',@args)) if ($c->debug);
+  }
+  else {
+    warn '[RapidApp::Sugar::DEBUG]: ' . join(' ',@args) . "\n";
+  }
 }
 
 # Suger function sets up a Native Trait ArrayRef attribute with useful
