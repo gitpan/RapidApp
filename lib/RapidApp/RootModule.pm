@@ -92,19 +92,20 @@ around 'Controller' => sub {
   # want the '_around_Controller' to take priority over this code, which
   # still takes priority over the original.
   return $self->_around_Controller->(sub {
+
+    # -----------
+    # The special handling below only applies when we're deployed at the root
+    # namespace of the app. If not, skip it and return now with default handling:
+    return $self->$orig(@a) unless ($c->module_root_namespace eq '');
+    # -----------
+
     my $args = $c->req->arguments;
     my ($opt) = @$args;
-    
-    if($c->can('session') && $c->session) {
-      $c->session->{disable_tabgui} = ($config->{disable_tabgui} || 0)
-        unless(exists $c->session->{disable_tabgui});
-    }
     
     # SPECIAL HANDLING FOR ROOT ('/') REQUEST:
     return $self->content unless ($opt || !$c->can('session') || (
       $c->can('session') && $c->session &&
-      $c->session->{RapidApp_username} &&
-      ! $c->session->{disable_tabgui}
+      $c->session->{RapidApp_username}
     ));
     
     return $self->$orig(@a) unless (
@@ -112,10 +113,8 @@ around 'Controller' => sub {
       $config->{root_template_prefix}
     );
     
-    $c->stash->{editable} = 1; # <-- Enable template editing (if has perms)
-    my $template = $config->{root_template_prefix} . join('/',@$args);
-    return $c->template_controller->view($c, $template);
-    
+    return $c->template_dispatcher->default($c,@$args);
+
     return $self->$orig(@a);
   },$self,@a);
 };
@@ -134,17 +133,7 @@ sub viewport {
 sub content {
   my $self = shift;
   my $c = $self->c;
-  my $config = $c->config->{'Model::RapidApp'};
-  
-  $c->stash->{editable} = 1; # <-- Enable template editing (if has perms)
-  my $template = $config->{root_template};
-  
-  unless ($template) {
-    $template = 'rapidapp/default_root_template.html';
-    $c->stash->{editable} = 0;
-  }
-
-  return $c->template_controller->view($c, $template);
+  return $c->template_dispatcher->default($c);
 }
 
 

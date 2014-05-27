@@ -16,22 +16,11 @@ use JSON qw(decode_json);
 sub load :Path :Args(1) {
   my ( $self, $c, $search_id ) = @_;
   
-  ### -----------------
-  ### NEW: detect direct browser GET requests (i.e. not from the ExtJS client):
-  ### and redirect them back to the #! hashnav path
-  if ($c->req->method eq 'GET' && ! $c->req->header('X-RapidApp-RequestContentType')) {
-    my $url = join('/','/#!',$self->action_namespace($c),$search_id);
-    my %params = %{$c->req->params};
-    if(keys %params > 0) {
-      my $qs = join('&',map { $_ . '=' . uri_escape($params{$_}) } keys %params);
-      $url .= '?' . $qs;
-    }
-    
-    $c->response->redirect($url);
-    return $c->detach;
-  }
-  ###
-  ### -----------------
+  ## ---
+  ## detect direct browser GET requests (i.e. not from the ExtJS client)
+  ## and redirect them back to the #! hashnav path
+  $c->auto_hashnav_redirect_current;
+  # ---
 
   my $Rs = $c->model('RapidApp::CoreSchema::SavedState');
   
@@ -55,10 +44,12 @@ sub load :Path :Args(1) {
 	$params->{search_id} = $data->{id};
 	
 	%{$c->req->params} = ( %{$c->req->params}, %$params );
-	$data->{url} =~ s/^\///; #<-- strip leading / (needed for split below)
-	my @arg_path = split(/\//,$data->{url});
-	
-	$c->detach('/approot',\@arg_path);
+  return $c->redispatch_public_path( $data->{url} );
+
+  ## This is how we did it before $c->redispatch_public_path():
+  #$data->{url} =~ s/^\///; #<-- strip leading / (needed for split below)
+  #my @arg_path = split(/\//,$data->{url});
+  #$c->detach('/approot',\@arg_path);
 }
 
 

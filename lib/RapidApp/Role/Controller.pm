@@ -13,7 +13,6 @@ use RapidApp::JSONFunc;
 use Try::Tiny;
 use Scalar::Util 'blessed';
 use Data::Dumper;
-use URI::Escape;
 
 use Term::ANSIColor qw(:constants);
 # TODO/FIXME: for some reason that I haven't taken the time to
@@ -24,12 +23,12 @@ use Term::ANSIColor qw(:constants);
 
 our $VERSION = '0.1';
 
-
 has 'base_url' => ( 
 	is => 'rw', lazy => 1, default => sub { 
 		my $self = shift;
-		
-		my $parentUrl= defined $self->parent_module? $self->parent_module->base_url.'/' : '';
+		my $ns = $self->app->module_root_namespace;
+    $ns = $ns eq '' ? $ns : '/' . $ns;
+		my $parentUrl= defined $self->parent_module? $self->parent_module->base_url.'/' : $ns;
 		return $parentUrl . $self->{module_name};
 	},
 	traits => [ 'RapidApp::Role::PerRequestVar' ] 
@@ -211,53 +210,18 @@ This method handles a request.
 
 =cut
 sub Controller {
-	my ($self, $c, @args) = @_;
-  
-  ### -----------------
-  ### NEW: detect direct browser GET requests (i.e. not from the ExtJS client):
-  ### and redirect them back to the #! hashnav path
-  my ($opt) = @args;
-  if (
-    $opt && $c->req->method eq 'GET'
-    && ! $c->req->header('X-RapidApp-RequestContentType')
-    && ! exists $c->req->params->{__no_hashnav_redirect} #<-- new: check for special exclude param
-  ) {
-    # Only for paths which are actually registered modules
-    # (new: no longer redirect for actions)
-    if($self->has_module($opt)) {
-      my $url = join('/','/#!',@args);
-      my %params = %{$c->req->params};
-      if(keys %params > 0) {
-        my $qs = join('&',map { $_ . '=' . uri_escape($params{$_}) } keys %params);
-        $url .= '?' . $qs;
-      }
-      $c->response->redirect($url);
-      return $c->detach;
-    }
-  }
-  ###
-  ### -----------------
-	
-	# base_url has been set by the Module function in the process of getting this module, or it will default to c->namespace
-	# 'c' is now a function that pulls from ScopedGlobals
-	# no_persist attributes are cleared at the end of TopController, rather than
-	#   before each module's controller at the next request. (frees up memory sooner, reduces bugs)
-	# mangling the request path can now be performed by prepare_controller
-	
-	# run user-defined or mix-in code to get ready to process the action
-	# the prepare function can modify the argument list if it so chooses
-	
-	#$self->prepare_controller(\@args); # why was this passed as a ref?? - changed 2012-09-07 by HV
-	$self->prepare_controller(@args);
-	
-	# dispatch the request to the appropriate handler
-	
-	$c->log->debug('--> ' . 
-		GREEN.BOLD . ref($self) . CLEAR . '  ' . 
-		GREEN . join('/',@args) . CLEAR
-	) if ($c->debug);
+  my ($self, $c, @args) = @_;
 
-	$self->controller_dispatch(@args);
+  $self->prepare_controller(@args);
+
+  # dispatch the request to the appropriate handler
+
+  $c->log->debug('--> ' . 
+    GREEN.BOLD . ref($self) . CLEAR . '  ' . 
+    GREEN . join('/',@args) . CLEAR
+  ) if ($c->debug);
+
+  $self->controller_dispatch(@args);
 }
 
 # module or action:
@@ -327,6 +291,7 @@ Else, content is called, and its return value is passed to render_data.
 
 sub controller_dispatch {
 	my ($self, $opt, @subargs)= @_;
+	my $c = $self->c;
 	
 	return $self->Module($opt)->Controller($self->c,@subargs)
 		if ($opt && !$self->has_action($opt) && $self->_load_module($opt));
@@ -359,9 +324,19 @@ sub controller_dispatch {
 		return $self->web1_content;
 	}
 	else {
-		$self->c->log->debug("--> " . GREEN . BOLD . "[content]" . CLEAR . ". (no action)")
-      if($self->c->debug);
-		return $self->render_data($self->content);
+    if($self->c->stash->{render_viewport} && $self->can('viewport')) {
+      return $self->viewport;
+    }
+    else {
+      ## ---
+      ## detect direct browser GET requests (i.e. not from the ExtJS client)
+      ## and redirect them back to the #! hashnav path
+      $c->auto_hashnav_redirect_current;
+      # ---
+      $self->c->log->debug("--> " . GREEN . BOLD . "[content]" . CLEAR . ". (no action)")
+        if($self->c->debug);
+      return $self->render_data($self->content);
+    }
 	}
 	
 }

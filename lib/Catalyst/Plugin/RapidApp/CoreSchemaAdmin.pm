@@ -5,6 +5,7 @@ use namespace::autoclean;
 with 'Catalyst::Plugin::RapidApp::RapidDbic';
 
 use RapidApp::Include qw(sugar perlutil);
+use Module::Runtime;
 
 =pod
 
@@ -17,25 +18,26 @@ via the RapidDbic plugin
 
 before 'setup_components' => sub {
   my $c = shift;
+  my $config = $c->config->{'Plugin::RapidApp::CoreSchemaAdmin'} || {};
   
-  my $model = 'RapidApp::CoreSchema';
+  my $cmp_class = 'Catalyst::Model::RapidApp::CoreSchema';
+  Module::Runtime::require_module($cmp_class);
   
-  $c->config->{'Plugin::RapidApp::RapidDbic'} ||= {};
-  my $config = $c->config->{'Plugin::RapidApp::RapidDbic'};
-  
-  $config->{dbic_models} ||= [];
-  $config->{configs} ||= {};
-  
-  my %existing = map {$_=>1} @{$config->{dbic_models}};
-  die join("\n",
-    "Don't use the CoreSchemaAdmin plugin with a RapidDbic config" .
-    "already configured to access the $model model"
-  ) if ($existing{$model});
-  
-  push @{$config->{dbic_models}}, $model;
-  
-  $config->{configs}->{'RapidApp::CoreSchema'} ||= {};
-  my $cnf = $config->{configs}->{'RapidApp::CoreSchema'};
+  my $cnf = $config->{RapidDbic} || {};
+
+  # Unless the 'all_sources' option is set, limit RapidDbic grids to
+  # sources which are actually being used
+  unless($config->{all_sources} || $cnf->{limit_sources}) {
+    my %src = ();
+    ++$src{Session} if ($c->can('session'));
+    ++$src{User} and ++$src{Role} if ($c->can('_authcore_load_plugins'));
+    ++$src{DefaultView} if ($c->can('_navcore_inject_controller'));
+    my @limit_sources = keys %src;
+    # If none of the above sources were added, don't configure the CoreSchema
+    # tree item for RapidDbic at all:
+    return unless (scalar @limit_sources > 0);
+    $cnf->{limit_sources} = \@limit_sources;
+  }
   
   # By default, set 'require_role' to administrator since this is
   # typically used with AuthCore and only admins should be able to access
@@ -44,7 +46,6 @@ before 'setup_components' => sub {
   # no effect in that case.
   $cnf->{require_role} ||= 'administrator';
   
-  # TODO: add support for a merged config
   $cnf->{grid_params} ||= {
     '*defaults' => {
       updatable_colspec => ['*'],
@@ -62,7 +63,7 @@ before 'setup_components' => sub {
     }
   };
   
+  $cmp_class->config( RapidDbic => $cnf );
 };
-
 
 1;

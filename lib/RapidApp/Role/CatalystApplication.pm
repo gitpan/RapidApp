@@ -11,6 +11,10 @@ use RapidApp::Debug 'DEBUG';
 use Text::SimpleTable::AutoWidth;
 use Catalyst::Utils;
 use Path::Class qw(file dir);
+use Time::HiRes qw(tv_interval);
+use Clone qw(clone);
+require Data::Dumper::Concise;
+use URI::Escape;
 
 use RapidApp;
 use Template;
@@ -20,6 +24,25 @@ sub rapidapp_version { $RapidApp::VERSION }
 sub rapidApp { (shift)->model("RapidApp"); }
 
 has 'request_id' => ( is => 'ro', default => sub { (shift)->rapidApp->requestCount; } );
+
+# ---
+# Capture the state of the config at load/setup and override 'dump_these' to
+# dump is instead of the real config. This is being done because of RapidApp
+# plugins which pollute the config hash with refs to deep structures making
+# it too large to safely dump in the event of an exception (in debug mode).
+before 'setup_finalize' => sub {
+  my $c = shift;
+  $c->config( initial_config => clone( $c->config ) );
+};
+sub dump_these {
+    my $c = shift;
+    [ Request => $c->req ],
+    [ Response => $c->res ],
+    [ Stash => $c->stash ],
+    [ Config => $c->config->{initial_config} ];
+}
+# ---
+
 
 around 'setup_components' => sub {
 	my ($orig, $app, @args)= @_;
@@ -67,8 +90,12 @@ sub setupRapidApp {
 	$app->injectUnlessExist( 'RapidApp::View::HttpStatus', 'View::RapidApp::HttpStatus' );
 	$app->injectUnlessExist( 'RapidApp::View::OnError', 'View::RapidApp::OnError' );
   
-  # New experimental Template controller:
+  # Template Controller:
   $app->injectUnlessExist( 'RapidApp::Template::Controller', 'Controller::RapidApp::Template' );
+  $app->injectUnlessExist( 'RapidApp::Template::Controller::Dispatch', 'Controller::RapidApp::TemplateDispatch' );
+
+  # New "DirectCmp" controller:
+  $app->injectUnlessExist( 'RapidApp::Controller::DirectCmp', 'Controller::RapidApp::Module' );
 };
 
 sub injectUnlessExist {
@@ -82,6 +109,10 @@ sub injectUnlessExist {
 after 'setup_finalize' => sub {
   my $app = shift;
   $app->rapidApp->_setup_finalize;
+  $app->log->info(sprintf(
+    " --- RapidApp (v$RapidApp::VERSION) Loaded in %0.3f seconds ---",
+    tv_interval($RapidApp::START)
+  ));
 };
 
 # called once per request, in class-context
@@ -135,6 +166,100 @@ sub _rapidapp_top_level_dispatch {
 	if (!defined $c->response->content_type) {
 		$c->log->error("Body was set, but content-type was not!  This can lead to encoding errors!");
 	}
+};
+
+sub module_root_namespace {
+  my $c = shift;
+  return $c->config->{'Model::RapidApp'}{module_root_namespace} || '';
+}
+
+# This is ugly, but seems to be the best way to re-resolve a *public* URL
+# path and dispatch it. It essentially starts over in handle_request at
+# the 'prepare_action' phase with a different request path set, leaving
+# all other details of the request the same. This is meant to be called
+# during an existing request (dispatch phase). This is used internally in 
+# places like NavCore for saved searches:
+sub redispatch_public_path {
+  my ($c, @args) = @_;
+
+  my $path = join('/',@args);
+  $path =~ s/^\///; #<-- strip leading /
+  $path =~ s/\/$//; #<-- strip trailing leading /
+  $path =~ s/\/+/\//g; #<-- strip any double //
+  $path ||= '';
+
+  $c->log->debug("Redispatching as path: $path") if ($c->debug);
+
+  # Overwrite the 'path' in the request object:
+  $c->request->path($path);
+
+  # Now call prepare_action again, now with the updated path:
+  $c->prepare_action;
+
+  # Now forward to the new action. If there is no action,
+  # call $c->dispatch just for the sake of error handling
+  return $c->action ? $c->forward( $c->action ) : $c->dispatch;
+}
+
+
+sub auto_hashnav_redirect_current {
+  my ($c, @args) = @_;
+  return $c->hashnav_redirect_current(@args) if (
+    $c->req->method eq 'GET' && ! $c->is_ra_ajax_req
+    && ! $c->req->params->{__no_hashnav_redirect} #<-- new: check for special exclude param
+  );
+}
+
+sub hashnav_redirect_current {
+  my ($c, @args) = @_;
+  # Redirects the current request back to itself as a hashnav:
+  return $c->hashnav_redirect($c->req->path,$c->req->params,@args);
+}
+
+sub hashnav_redirect {
+  my ($c, $path, $params, $base) = @_;
+
+  $path = [$path] unless (ref($path));
+
+  unless(defined $base) {
+    # Use the module_root_namespace as the base, if set:
+    my $ns = $c->module_root_namespace;
+    $base = $ns ne '' ? join('','/',$ns,'/') : '/';
+  }
+
+  my $url = join('/','',$base.'#!',@$path);
+  $url =~ s/\/+/\//g; #<-- strip any double //
+
+  if($params && keys %$params > 0) {
+    my $qs = join('&',map { $_ . '=' . uri_escape($params->{$_}) } keys %$params);
+    $url .= '?' . $qs;
+  }
+
+  $c->response->redirect($url);
+  return $c->detach;
+}
+
+
+around 'finalize_error' => sub {
+  my ($orig, $c, @args) = @_;
+  if($c->is_ra_ajax_req) {
+    # If this is an Ajax request, send it back as raw text instead of
+    # the normal Catalyst::Engine's HTML error page
+    $c->res->content_type('text/plain; charset=utf-8');
+    my $error = join("\n", @{ $c->error }) || 'Unknown error';
+    if($c->debug) {
+      $error .= join("\n",
+        "\n\n",
+        "RapidApp v$RapidApp::VERSION\n",
+        map { Data::Dumper::Concise::Dumper($_) } $c->dump_these
+      );
+    };
+    $c->res->body($error);
+    $c->res->status(500);
+  }
+  else {
+    return $c->$orig(@args);
+  }
 };
 
 # called after the response is sent to the client, in object-context
@@ -237,17 +362,27 @@ before 'setup_plugins' => sub {
 };
 # --
 
+# Handy method returns true for requests which came from The RapidApp ajax client
+sub is_ra_ajax_req {
+  my $c = shift;
+  return 0 unless ($c->can('request') && $c->request);
+  my $tp = $c->request->header('X-RapidApp-RequestContentType') or return 0;
+  return $tp eq 'JSON' ? 1 : 0;
+}
+
 # New: convenience method to get the main 'Template::Controller' which
 # is being made into a core function of rapidapp:
 sub template_controller { (shift)->controller('RapidApp::Template') }
+sub template_dispatcher { (shift)->controller('RapidApp::TemplateDispatch') }
 
 my $share_dir = dir( RapidApp->share_dir );
 sub default_tt_include_path {
   my $c = shift;
+  my $app = ref $c ? ref $c : $c;
   
   my @paths = ();
-  my $home = dir( Catalyst::Utils::home($c) );
-    
+  my $home = dir( Catalyst::Utils::home($app) );
+  
   if($home && -d $home) {
     my $root = $home->subdir('root');
     if($root && -d $root) {

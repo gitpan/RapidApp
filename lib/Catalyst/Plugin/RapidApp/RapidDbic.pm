@@ -7,16 +7,15 @@ with 'Catalyst::Plugin::RapidApp::TabGui';
 use RapidApp::Include qw(sugar perlutil);
 require Module::Runtime;
 require Catalyst::Utils;
+use List::Util;
 
 
 before 'setup_components' => sub {
   my $c = shift;
   
-  my $config = $c->config->{'Plugin::RapidApp::RapidDbic'} or die
-    "No 'Plugin::RapidApp::RapidDbic' config specified!";
-  
-  die "Plugin::RapidApp::RapidDbic: No dbic_models specified!"
-    unless ($config->{dbic_models});
+  $c->config->{'Plugin::RapidApp::RapidDbic'} ||= {};
+  my $config = $c->config->{'Plugin::RapidApp::RapidDbic'};
+  $config->{dbic_models} ||= [];
   
   $config->{dbic_tree_module_name} = 'db';
   $config->{table_class} ||= 'Catalyst::Plugin::RapidApp::RapidDbic::TableBase';
@@ -42,24 +41,56 @@ before 'setup_components' => sub {
   };
 };
 
+# Validate we got a valid RapidDbic config by the end of setup_components or die:
+after 'setup_components' => sub {
+  my $c = shift;
+  
+  my $cfg = $c->config->{'Plugin::RapidApp::RapidDbic'};
+  die "No 'Plugin::RapidApp::RapidDbic' config specified!" unless (
+    $cfg && ref($cfg) eq 'HASH' && scalar(keys %$cfg) > 0
+  );
+  
+  my $mdls = $cfg->{dbic_models};
+  die "Plugin::RapidApp::RapidDbic: No dbic_models specified!" unless (
+    $mdls && ref($mdls) eq 'ARRAY' && scalar(@$mdls) > 0
+  );
+
+  # Quick hack: move RapidApp::CoreSchema to the end of the list, if present
+  # (this was needed after adding the local model config feature)
+  #@$mdls = ((grep { $_ ne 'RapidApp::CoreSchema' } @$mdls), 'RapidApp::CoreSchema') if (
+  #  List::Util::first { $_ eq 'RapidApp::CoreSchema' } @$mdls
+  #);
+};
 
 before 'setup_component' => sub {
   my( $c, $component ) = @_;
   
-  my $config = $c->config->{'Plugin::RapidApp::RapidDbic'} or die
-    "No 'Plugin::RapidApp::RapidDbic' config specified!";
-  
-  die "Plugin::RapidApp::RapidDbic: No dbic_models specified!"
-    unless ($config->{dbic_models});
-  
   my $appclass = ref($c) || $c;
+  my $config = $c->config->{'Plugin::RapidApp::RapidDbic'};
+  
+  # -- New: read in optional RapidDbic config from the model itself:
+  my $local_cnf = try{$component->config->{RapidDbic}};
+  if($local_cnf) {
+    my ($junk,$name) = split(join('::',$appclass,'Model',''),$component,2);
+    if($name) {
+      $config->{dbic_models} ||= [];
+      push @{$config->{dbic_models}}, $name unless (
+        List::Util::first {$_ eq $name} @{$config->{dbic_models}}
+      );
+      # a config for this model specified in the main app config still takes priority:
+      $config->{configs}{$name} ||= $local_cnf;
+      $local_cnf = $config->{configs}{$name};
+    }
+  }
+  $local_cnf ||= {};
+  # --
+  
   my %active_models = ();
   foreach my $model (@{$config->{dbic_models}}) {
     my ($schema,$result) = split(/\:\:/,$model,2);
     $active_models{$appclass."::Model::".$schema}++;
   }
   return unless ($active_models{$component});
-  
   
   # this doesn't seem to work, and why is it here?
   #my $suffix = Catalyst::Utils::class2classsuffix( $component );
@@ -79,12 +110,18 @@ before 'setup_component' => sub {
   my ($model_name) = reverse split(/\:\:/,$component); #<-- educated guess, see temp/hack below
   Module::Runtime::require_module($schema_class);
   
-  my $exclude_sources = try{$config->{configs}{$model_name}{exclude_sources}} || [];
+  my $lim_sources = $local_cnf->{limit_sources} ? {map{$_=>1} @{$local_cnf->{limit_sources}}} : undef;
+  my $exclude_sources = $local_cnf->{exclude_sources} || [];
   my %excl_sources = map { $_ => 1 } @$exclude_sources;
+  
+  # Base RapidApp module path:
+  my $mod_path = join('/','',$c->module_root_namespace,'main');
+  $mod_path =~ s/\/+/\//g; #<-- strip double //
   
   for my $class (keys %{$schema_class->class_mappings}) {
     my $source_name = $schema_class->class_mappings->{$class};
     
+    next if ($lim_sources && ! $lim_sources->{$source_name});
     next if ($excl_sources{$source_name});
     
     my $virtual_columns = try{$config->{configs}{$model_name}{virtual_columns}{$source_name}};
@@ -103,12 +140,13 @@ before 'setup_component' => sub {
     # the open url configs so that cross table links are able to work. this is 
     # just a stop-gap until this functionality is factored into the RapidApp API 
     # officially, somehow...
+    
     my $module_name = lc($model_name . '_' . $class->table);
-    my $grid_url = '/main/' . $config->{dbic_tree_module_name} . '/' . $module_name;
+    my $grid_url = join('/',$mod_path,$config->{dbic_tree_module_name},$module_name);
     $class->TableSpec_set_conf(
       priority_rel_columns => 1,
       open_url_multi => $grid_url,
-      open_url => $grid_url."/item",
+      open_url => join('/',$grid_url,"item"),
     );
     # ----
     
@@ -132,8 +170,8 @@ before 'setup_component' => sub {
     # For single-relationship columns (belongs_to) we want to hide
     # the underlying fk_column because the relationship column name
     # handles setting it for us. In typical RapidApps this is done manually,
-    # currently...
-    if($config->{hide_fk_columns}) {
+    # currently... Check for the config option globally or individually:
+    if($local_cnf->{hide_fk_columns} || $config->{hide_fk_columns}) {
       for my $rel ( $class->relationships ) {
         my $rel_info = $class->relationship_info($rel);
         next unless ($rel_info->{attrs}->{accessor} eq 'single');
