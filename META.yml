@@ -122,6 +122,7 @@ requires:
   Params::Validate: 0
   Path::Class: 0
   Plack: 1.0030
+  Pod::Usage: 0
   SQL::Translator: 0.11016
   Scalar::Util: 0
   Spreadsheet::ParseExcel: 0
@@ -156,4 +157,4 @@ resources:
   bugtracker: https://github.com/vanstyn/RapidApp/issues
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99301
+version: 0.99302

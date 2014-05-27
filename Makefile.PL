@@ -20,7 +20,9 @@ my %WriteMakefileArgs = (
     "File::ShareDir::Install" => "0.03"
   },
   "DISTNAME" => "RapidApp",
-  "EXE_FILES" => [],
+  "EXE_FILES" => [
+    "script/rapidapp.pl"
+  ],
   "LICENSE" => "perl",
   "NAME" => "RapidApp",
   "PREREQ_PM" => {
@@ -121,6 +123,7 @@ my %WriteMakefileArgs = (
     "Params::Validate" => 0,
     "Path::Class" => 0,
     "Plack" => "1.0030",
+    "Pod::Usage" => 0,
     "SQL::Translator" => "0.11016",
     "Scalar::Util" => 0,
     "Spreadsheet::ParseExcel" => 0,
@@ -165,7 +168,7 @@ my %WriteMakefileArgs = (
     "lib" => 0,
     "utf8" => 0
   },
-  "VERSION" => "0.99301",
+  "VERSION" => "0.99302",
   "test" => {
     "TESTS" => "t/*.t"
   }
@@ -273,6 +276,7 @@ my %FallbackPrereqs = (
   "Params::Validate" => 0,
   "Path::Class" => 0,
   "Plack" => "1.0030",
+  "Pod::Usage" => 0,
   "SQL::Translator" => "0.11016",
   "Scalar::Util" => 0,
   "Spreadsheet::ParseExcel" => 0,
