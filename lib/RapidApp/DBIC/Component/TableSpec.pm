@@ -32,7 +32,6 @@ my $default_data_type_profiles = {
 	text 		=> [ 'bigtext' ],
 	mediumtext	=> [ 'bigtext' ],
 	longtext	=> [ 'bigtext' ],
-	blob 		=> [ 'bigtext' ],
 	tinytext 	=> [ 'text' ],
 	varchar 	=> [ 'text' ],
 	char 		=> [ 'text' ],
@@ -48,6 +47,12 @@ my $default_data_type_profiles = {
 	datetime	=> [ 'datetime' ],
 	timestamp	=> [ 'datetime' ],
 	date		=> [ 'date' ],
+  blob       => [ 'blob' ],
+  longblob   => [ 'blob' ],
+  mediumblob => [ 'blob' ],
+  tinyblob   => [ 'blob' ],
+  binary     => [ 'blob' ],
+  varbinary  => [ 'blob' ],
 };
 __PACKAGE__->mk_classdata( 'TableSpec_data_type_profiles' );
 __PACKAGE__->TableSpec_data_type_profiles({ %$default_data_type_profiles }); 
@@ -306,14 +311,18 @@ sub default_TableSpec_cnf  {
 	
 	my $table = $self->table;
 	$table = (split(/\./,$table,2))[1] || $table; #<-- get 'table' for both 'db.table' and 'table' format
+  
+  my $is_virtual = $self->_is_virtual_source;
+  my $defs_i = $is_virtual ? 'ra-icon-pg-red' : 'ra-icon-pg';
+  my $defm_i = $is_virtual ? 'ra-icon-pg-multi-red' : 'ra-icon-pg-multi';
 	
 	# FIXME: These defaults cannot be seen via call from related tablespec, because of
 	# a circular logic situation. For base-defaults, see apply_TableSpec above
 	# This is one of the reasons the whole TableSpec design needs to be refactored
 	my %defaults = ();
 	$defaults{iconCls} = $data->{singleIconCls} if ($data->{singleIconCls} and ! $data->{iconCls});
-	$defaults{iconCls} = $defaults{iconCls} || $data->{iconCls} || 'ra-icon-pg';
-	$defaults{multiIconCls} = $data->{multiIconCls} || 'ra-icon-pg-multi';
+	$defaults{iconCls} = $defaults{iconCls} || $data->{iconCls} || $defs_i;
+	$defaults{multiIconCls} = $data->{multiIconCls} || $defm_i;
 	$defaults{singleIconCls} = $data->{singleIconCls} || $defaults{iconCls};
 	$defaults{title} = $data->{title} || $table;
 	$defaults{title_multi} = $data->{title_multi} || $defaults{title};
@@ -356,6 +365,14 @@ sub default_TableSpec_cnf  {
   return $defs;
 }
 
+sub _is_virtual_source {
+  my $self = shift;
+  return (
+    $self->result_source_instance->can('is_virtual') &&
+    $self->result_source_instance->is_virtual
+  );
+}
+
 sub default_TableSpec_cnf_columns {
 	my $self = shift;
 	my $set = shift || {};
@@ -379,6 +396,8 @@ sub default_TableSpec_cnf_columns {
   
 	my $data_types = $self->TableSpec_data_type_profiles;
 	#scream(keys %$cols);
+  
+  my $is_virtual = $self->_is_virtual_source;
 	
 	foreach my $col (keys %$cols) {
 		
@@ -417,10 +436,8 @@ sub default_TableSpec_cnf_columns {
 				if ($info->{attrs}->{accessor} eq 'single' || $info->{attrs}->{accessor} eq 'filter') {
 					
           # -- NEW: Virtual Single Relationship - will be read-only
-          # with no open link:
           unless($cond_data->{foreign} && $cond_data->{self}) {
             $cols->{$col}{virtualized_single_rel} = 1;
-            delete $cols->{$col}{relationship_info};
             $cols->{$col}{allow_add} = 0;
             $cols->{$col}{allow_edit} = 0;
             next;
@@ -490,6 +507,7 @@ sub default_TableSpec_cnf_columns {
         # New: add the 'relcol' profile to relationship columns:
         $cols->{$col}->{profiles} ||= [];
         push @{$cols->{$col}->{profiles}}, 'relcol';
+        push @{$cols->{$col}->{profiles}}, 'virtual_source' if ($is_virtual);
 			}
 			next;
 		}
@@ -510,6 +528,8 @@ sub default_TableSpec_cnf_columns {
 			not ref $cols->{$col}->{profiles}
 		);
 		push @profiles, @{$cols->{$col}->{profiles}} if ($cols->{$col}->{profiles});
+    
+    push @profiles, 'virtual_source' if ($is_virtual);
 		
 		$cols->{$col}->{profiles} = \@profiles;
 		

@@ -88,7 +88,14 @@ sub baseResultSet {
 }
 
 sub _ResultSet {
-	my $self = shift;
+  my $self = shift;
+  
+  my $p = $self->c->req->params;
+  if($p->{rs_path} && $p->{rs_method}) {
+    my $Module = $self->get_Module($p->{rs_path}) or die "Failed to get module at $p->{rs_path}";
+    return $Module->_resolve_rel_obj_method($p->{rs_method});
+  }
+  
 	my $Rs = $self->baseResultSet(@_);
 	
 	# the order of when this is called is vitally important:
@@ -154,10 +161,10 @@ has 'TableSpec' => ( is => 'ro', isa => 'TableSpec', lazy_build => 1 );
 sub _build_TableSpec {
 	my $self = shift;
 	
-	my $from = $self->ResultSource->from;
-	$from = (split(/\./,$from,2))[1] || $from; #<-- get 'table' for both 'db.table' and 'table' format
+	my $table = $self->ResultClass->table;
+	$table = (split(/\./,$table,2))[1] || $table; #<-- get 'table' for both 'db.table' and 'table' format
 	my %opt = (
-		name => $from,
+		name => $table,
 		relation_sep => $self->relation_sep,
 		ResultSource => $self->ResultSource,
 		include_colspec => $self->include_colspec
@@ -243,7 +250,9 @@ sub prepare_rest_request {
 	my $self = shift;
 	return unless ($self->allow_restful_queries);
 	
-	my @args = $self->local_args;
+	# New: allow override pf rest args from stash:
+	my $stash_args = $self->c->stash->{rest_args};
+	my @args = $stash_args ? @$stash_args : $self->local_args;
 	
 	$_ = uri_unescape($_) for (@args);
 	
@@ -259,11 +268,11 @@ sub prepare_rest_request {
     $crudI{$rargs[0]}
   );
 	
-	# -- peel of the rs (resultset) args if present:
-	my $rs;
+	# -- peel off the 'rel' (relationship) args if present:
+	my $rel;
 	if(scalar @args > 2) {
-		if(lc($rargs[1]) eq 'rs') {
-			$rs = pop @args;
+		if(lc($rargs[1]) eq 'rel' || lc($rargs[1]) eq 'rs') {
+			$rel = pop @args;
 			pop @args;
 		}
 	}
@@ -300,7 +309,7 @@ sub prepare_rest_request {
 	die usererr "Too many args in RESTful URL (" . join('/',@args) . ") - should be 2 (i.e. 'id/1234')"
 		if(scalar @args > 2);
 		
-	return $self->redirect_handle_rest_rs_request($key,$val,$rs) if ($rs);
+	return $self->redirect_handle_rest_rel_request($key,$val,$rel) if ($rel);
 	
 	# Apply default tabTitle: (see also 'getTabTitle' in DbicRowPage)
 	$self->apply_extconfig( tabTitle => ($key eq $self->record_pk ? 'Id' : $key ) . '/' . $val );
@@ -339,33 +348,71 @@ sub restGetRow {
 	return $Rs->first;
 }
 
-sub redirect_handle_rest_rs_request {
-	my ($self,$key,$val,$rel) = @_;
-	
-	my $Row  = $self->restGetRow($key,$val);
-	
-	die usererr "No such relationship $rel" unless ($Row->has_relationship($rel));
-	
-	my $Source = $Row->result_source;
-	my $class = $Source->related_class($rel);
-	
-	my $url = try{$class->TableSpec_get_conf('open_url_multi')}
-		or die usererr "No path (open_url_multi) defined to render Result Class: $class";
-	
-	$self->c->stash->{apply_extconfig} = {
-		tabTitle => "[$key/$val] $rel"
-	};
-	
-	my $cond = $Row->$rel->{attrs}->{where};
-	%{$self->c->req->params} = (
-		base_params => $self->json->encode({ 
-			resultset_condition => $self->json->encode($cond)
-		})
-	);
-	
-	$url =~ s/^\///; #<-- strip leading / (needed for split below)
-	my @arg_path = split(/\//,$url);
-	$self->c->detach('/approot',\@arg_path);
+# This is designed to be called from *another* module to resolve a ResultSet
+# object via arbitrary 'rs_method' path spec
+sub _resolve_rel_obj_method {
+  my ($self, $rs_method) = @_;
+  my ($key,$val,$rel) = split('/',$rs_method,3);
+  my $Row = $self->restGetRow($key,$val);
+  die usererr "No such relationship $rel at ''$rs_method''" unless ($Row->has_relationship($rel));
+  return $Row->$rel;
+}
+
+sub redirect_handle_rest_rel_request {
+  my ($self,$key,$val,$rel) = @_;
+  my $c = $self->c;
+  
+  my $mth_path = join('/',$key,$val,$rel);
+  my $RelObj = $self->_resolve_rel_obj_method($mth_path);
+  my $Src = $RelObj->result_source;
+  my $class = $Src->schema->class($Src->source_name);
+  
+  $c->stash->{apply_extconfig} = {
+    tabTitle => "[$key/$val] $rel"
+  };
+  
+  if($RelObj->isa('DBIx::Class::ResultSet')) {
+    my $url = try{$class->TableSpec_get_conf('open_url_multi')}
+      or die usererr "No path (open_url_multi) defined to render Result Class: $class";
+
+    %{$c->req->params} = (
+      base_params => $self->json->encode({ 
+        rs_path   => $self->module_path,
+        rs_method => join('/',$key,$val,$rel)
+      })
+    );
+  
+    $c->root_module_controller->approot($c,$url);
+    return $c->detach;
+  }
+  else {
+    
+    # New: here we are actually dispatching to the page for the single rel, but still
+    # within the rest URL of the rel path. Ideally, for this case we would *redirect*
+    # to the actual REST URL for thsi object, whatever it may be. In order to do this,
+    # support for redirects needs to be added to the autopanel/hashnav stuff on the
+    # client side. In the meantime, rendering the real/actual row page, albeit at an
+    # alias (but still totally valid) url path is the best choice
+    
+    my $url = try{$RelObj->getRestPath};
+    if($url) {
+      # Simulate the rest_args for proper handling of the remote DbicLink
+      # request to operate under the current, alias URL:
+      $self->c->stash->{rest_args} = [$RelObj->getRestKey,$RelObj->getRestKeyVal];
+      $c->root_module_controller->approot($c,$url);
+      return $c->detach;
+    }
+    else {
+      # This is just a fallback - TODO: use a better error msg...
+      die usererr rawhtml join('',
+        "Relationship at '$mth_path' is not a ResultSet, it is a Row",
+        try{join(''," (",
+          '<i><b style="color:darkblue;font-size:0.9em;">',
+          $RelObj->displayWithLink,'</b></i>',
+        ')')},
+      ), title => 'Not a multi relationship'; 
+    }
+  }
 }
 
 
@@ -1598,6 +1645,13 @@ has 'inflate_multifilter_date_unit_map', is => 'ro', default => sub {{
 	second		=> 'seconds'
 }};
 
+has 'is_virtual_source', is => 'ro', lazy => 1, default => sub {
+  my $self = shift;
+  return  (
+    $self->ResultClass->result_source_instance->can('is_virtual') &&
+    $self->ResultClass->result_source_instance->is_virtual
+  );
+}, isa => 'Bool';
 
 has 'DataStore_build_params' => ( is => 'ro', isa => 'HashRef', default => sub {{}} );
 before DataStore2_BUILD => sub {
@@ -1630,6 +1684,14 @@ before DataStore2_BUILD => sub {
 		defined $self->destroyable_relspec and 
 		not $self->can('destroy_records')
 	);
+  
+  # New: Override to globally disable create/destroy for virtual sources:
+  if($self->is_virtual_source) {
+    exists $store_params->{create_handler}  && delete $store_params->{create_handler};
+    exists $store_params->{destroy_handler} && delete $store_params->{destroy_handler};
+    $self->apply_flags( can_create  => 0 );
+    $self->apply_flags( can_destroy => 0 );
+  }
 	
 	# merge this way to make sure the opts get set, but yet still allow
 	# the opts to be specifically overridden DataStore_build_params attr

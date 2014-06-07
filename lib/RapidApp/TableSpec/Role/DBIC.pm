@@ -1339,22 +1339,16 @@ sub get_relationship_column_cnf {
 	my $self = shift;
 	my $rel = shift;
 	my %opt = (ref($_[0]) eq 'HASH') ? %{ $_[0] } : @_; # <-- arg as hash or hashref
-  
-  # --- NEW
-  return ( 
-    %opt, 
-    name => $self->column_prefix . $rel
-  ) if ($opt{virtualized_single_rel});
-  # ---
-	
+
+  return $self->get_virtual_relationship_column_cnf($rel,\%opt) if ($opt{virtualized_single_rel});
 	return $self->get_multi_relationship_column_cnf($rel,\%opt) if ($self->multi_rel_columns_indx->{$rel});
 	
 	my $conf = \%opt;
 	my $info = $conf->{relationship_info} or die "relationship_info is required";
 	
-	my $from = $self->ResultSource->from;
-	$from = (split(/\./,$from,2))[1] || $from; #<-- get 'table' for both 'db.table' and 'table' format
-	my $err_info = "rel col: " . $from . ".$rel - " . Dumper($conf);
+  my $table = $self->ResultClass->table;
+	$table = (split(/\./,$table,2))[1] || $table; #<-- get 'table' for both 'db.table' and 'table' format
+	my $err_info = "rel col: " . $table . ".$rel - " . Dumper($conf);
 	
 	die "displayField is required ($err_info)" unless (defined $conf->{displayField});
 	die "valueField is required ($err_info)" unless (defined $conf->{valueField});
@@ -1679,45 +1673,46 @@ sub get_multi_relationship_column_cnf {
 		$title .
 		'&nbsp;<span class="superscript-navy">';
 	
-	#scream($conf->{relationship_cond_data});
-	
-	#my $attrs = {};
-	#$attrs->{join} = $conf->{relationship_cond_data}->{attrs}->{join} if ($conf->{relationship_cond_data}->{attrs}->{join});
-	
 	my $cur_renderer = $conf->{renderer};
+  
+  my $open_url = $self->ResultClass->TableSpec_get_conf('open_url');
+  my $rel_rest_key = try{$self->ResultClass->getRestKey};
+  my $orgnCol = $rel_rest_key ? join('',$self->column_prefix,$rel_rest_key) : undef;
 	
   $conf->{required_fetch_columns} ||= [];
-  push @{$conf->{required_fetch_columns}}, $self->column_prefix . $rel_data->{self} 
-    if ($rel_data->{self});
+  push @{$conf->{required_fetch_columns}}, $orgnCol if ($orgnCol);
+  
+  my $rSelfCol = $rel_data->{self} ? join('',$self->column_prefix,$rel_data->{self}) : undef;
+  push @{$conf->{required_fetch_columns}}, $rSelfCol if ($rSelfCol && $rSelfCol ne ($orgnCol || ''));
 
-	# not fully working yet, use_rest turned off...
-	my $use_rest = 0;
-	my $rel_rest_key = try{$self->ResultClass->getRestKey};
-	if($use_rest && $rel_rest_key) {
-		my $key_col = $rel_data->{foreign};
-		my $open_url = $self->ResultClass->TableSpec_get_conf('open_url');
-		# Toggle setting the 'key' arg in the link (something/1234/rs/rel vs something/key/1234/rs/rel)
-		my $rest_key = $rel_rest_key eq $rel_data->{self} ? undef : $rel_data->{self};
+  # Allow old apps to turn off using this source as a rest origin and force fallback to
+  # the fugly, original loadCnf inlineLink
+	my $use_rest = $self->ResultClass->TableSpec_get_conf('allow_rel_rest_origin');
+  $use_rest = 1 unless (defined $use_rest);
+	if($use_rest && $orgnCol && $open_url) {
 		$conf->{renderer} = jsfunc(
 			'function(value, metaData, record) { return Ext.ux.RapidApp.DbicRelRestRender({' .
 				'value:value,record:record,' .
 				"disp: '" . $div_open . "' + value + '</span>'," .
-				'key_col: "' . $key_col . '",' .
+				'key_col: "' . $orgnCol . '",' .
 				'open_url: "' . $open_url . '",' .
+				'multi_rel: true,' .
 				'rs: "' . $rel . '"' . 
-				( $rest_key ? ',rest_key:"' . $rest_key . '"' : '') .
 			'})}',$cur_renderer
 		);
 	}
 	else {
-		# Fall back to the old thick, loadCnf inlineLink
+
+		# Fall back to the old thick, ugly loadCnf inlineLink:
+    #  This code path should never happen with RapidDbic, but will still happen for
+    #  manual setups where there is no 'open_url' or other missing TableSpec data:
 		$conf->{renderer} = $rel_data->{self} ? jsfunc(
 			'function(value, metaData, record, rowIndex, colIndex, store) {' .
 				"var div_open = '$div_open';" .
 				"var disp = div_open + value + '</span>';" .
 				
 				#'var key_key = ' .
-				'var key_val = record.data["' . $self->column_prefix . $rel_data->{self} . '"];' .
+				'var key_val = record.data["' . $rSelfCol . '"];' .
 				
 				'var attr = ' . RapidApp::JSON::MixedEncoder::encode_json($rel_data->{attrs}) . ';' .
 				
@@ -1774,9 +1769,8 @@ sub get_multi_relationship_column_cnf {
    );
 	}
 	
-	
 
-	$conf->{name} = $self->column_prefix . $rel;
+	$conf->{name} = join('',$self->column_prefix,$rel);
 	
 	return %$conf;
 }
@@ -1854,6 +1848,45 @@ sub get_m2m_multi_relationship_column_cnf {
 	
 	return %$conf;
 }
+
+
+# TODO: consolidate/simplify all "virtual" relationship columns here. Multi-relationship
+# columns are themselves a virtual column...
+sub get_virtual_relationship_column_cnf {
+  my $self = shift;
+  my $rel = shift;
+  my %opt = (ref($_[0]) eq 'HASH') ? %{ $_[0] } : @_; # <-- arg as hash or hashref
+  
+  my $conf = { 
+    %opt, 
+    name => join('',$self->column_prefix,$rel)
+  };
+  
+  my $cur_renderer = $conf->{renderer};
+  
+  my $rel_rest_key = try{$self->ResultClass->getRestKey};
+  my $orgnCol = $rel_rest_key ? join('',$self->column_prefix,$rel_rest_key) : undef;
+  
+  $conf->{required_fetch_columns} ||= [];
+  push @{$conf->{required_fetch_columns}}, $orgnCol if ($orgnCol);
+
+  my $use_rest = 1;
+  if($use_rest && $orgnCol) {
+    my $open_url = $self->ResultClass->TableSpec_get_conf('open_url');
+    $conf->{renderer} = jsfunc( join('',
+      'function(value, metaData, record) { return Ext.ux.RapidApp.DbicRelRestRender({',
+        'value:value,',
+        'record:record,',
+        'key_col: "',$orgnCol,'",',
+        'open_url: "',$open_url,'",',
+        'rs: "',$rel,'"',
+      '})}'
+    ),$cur_renderer);
+  }
+    
+  return %$conf;
+}
+
 
 sub get_or_create_rapidapp_module {
 	my $self = shift;

@@ -158,38 +158,15 @@ sub _ra_catalyst_configs {
   my $self = shift;
   return (
 <<END,
-    'Controller::RapidApp::Template' => {
-      default_template_extension => 'html',
-      access_params => {
-        # Make all template paths under site/ (root/templates/site/) editable:
-        writable_regex      => '^site\/',
-        creatable_regex     => '^site\/',
-        deletable_regex     => '^site\/',
-
-        # Declare templates under site/public/ (root/templates/site/public/)
-        # to be 'external' (will render in an iframe in the TabGui)
-        external_tpl_regex  => '^site\/public\/',
-      },
-
-      # To declare a custom template access class:
-      #access_class => '$self->{name}::Template::Access'
-    },
-END
-,
-<<END,
-    # The 'Model::RapidApp' config controls aspects of the special components that
+    # The general 'RapidApp' config controls aspects of the special components that
     # are globally injected/mounted into the Catalyst application dispatcher:
-    'Model::RapidApp' => {
+    'RapidApp' => {
       ## To change the root RapidApp module to be mounted someplace other than
       ## at the root (/) of the Catalyst app (default is '' which is the root)
       #module_root_namespace => 'adm',
-
-      ## To directly serve templates from the root namespace for easy
-      ## public-facing content:
-      #root_template_prefix  => 'site/public/page/',
-      #root_template         => 'site/public/page/home',
     },
 END
+,
   );
 }
 

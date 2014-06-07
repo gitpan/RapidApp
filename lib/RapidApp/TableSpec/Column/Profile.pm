@@ -129,6 +129,18 @@ sub DEFAULT_PROFILES {{
     editor		=> { xtype => 'textarea', grow => \1 },
     summary_functions => \@text_summary_funcs 
   },
+  blob => {
+    width    => 130,
+    renderer => 'Ext.ux.RapidApp.renderHex',
+    # Here we have a (simple) hex editor which works, however, we're still disabling 
+    # editing out of the gate as the default because there are so many 
+    # possible scenarios for binary data, and in most cases hex editing isn't
+    # useful. However, we still have this as the editor, so that if the user
+    # *does* want to edit, and manually sets allow_edit to true, the default editor
+    # be a sane choice (hex) which will match the default renderer.
+    editor     => { xtype => 'ra-hexfield', grow => \1 },
+    allow_edit => \0
+  },
   html => {
     width => 200,
     # We need this renderer in case the 'bigtext' profile above has been applied
@@ -197,6 +209,15 @@ sub DEFAULT_PROFILES {{
     renderer => 'Ext.util.Format.fileSize',
   },
   autoinc => {
+    allow_add => \0,
+    allow_edit => \0,
+    allow_batchedit => \0
+  },
+  img_blob => {
+    width => 120,
+    renderer => "Ext.ux.RapidApp.getEmbeddedImgRenderer()"
+  },
+  virtual_source => {
     allow_add => \0,
     allow_edit => \0,
     allow_batchedit => \0

@@ -974,8 +974,8 @@ Ext.ux.Bool2yesno = function(val) {
 
 Ext.ns('Ext.ux.showNull');
 Ext.ux.showNull = function(val) {
-	if (val == null) { return '<span style="color:darkgrey;">(not&nbsp;set)</span>'; }
-	if (val === "") { return '<span style="color:darkgrey;">(empty&nbsp;string)</span>'; }
+	if (val == null) { return '<span class="ra-null-val">(not&nbsp;set)</span>'; }
+	if (val === "") { return '<span class="ra-null-val">(empty&nbsp;string)</span>'; }
 	return val;
 }
 
@@ -3867,6 +3867,9 @@ Ext.ux.RapidApp.AppPropertyGrid = Ext.extend(Ext.ux.grid.PropertyGrid,{
 					metaData.css += ' x-grid3-dirty-cell';
 				}
 				
+				// Make text of the value column selectable (copy/paste):
+				metaData.css += ' yes-text-select';
+				
 				// Translate the renderer to work like in a normal grid:
 				if(orig_renderer) {
 					if(!bindRec) { 
@@ -3896,12 +3899,6 @@ Ext.ux.RapidApp.AppPropertyGrid = Ext.extend(Ext.ux.grid.PropertyGrid,{
 		Ext.apply(this.bindStore.baseParams,params);
 		
 		Ext.ux.RapidApp.AppPropertyGrid.superclass.initComponent.call(this);
-		
-		/* -- vv -- Make text of the value column selectable (copy/paste) :*/
-		// TODO: expand/refine this
-		var val_col = this.getColumnModel().getColumnById('value');
-		val_col.css = '-moz-user-select: text;-khtml-user-select: text;';
-		/* -- ^^ -- */
 		
 		this.on('afterrender',this.loadFirstRecord,this);
 		this.bindStore.on('load',this.loadFirstRecord,this);
@@ -4023,13 +4020,20 @@ Ext.ux.RapidApp.boolCheckMark = function(val) {
 }
 
 // Returns a date formatter function based on the supplied format:
-Ext.ux.RapidApp.getDateFormatter = function(format) {
-	if (!format) { format = "Y-m-d H:i:s"; }
-	return function(date) {
-		var dt = Date.parseDate(date,"Y-m-d H:i:s");
-		if (! dt) { return date; }
-		return dt.format(format);
-	}
+Ext.ux.RapidApp.getDateFormatter = function(format,allow_zero) {
+  if (!format) { format = "Y-m-d H:i:s"; }
+  return function(date) {
+    if(!allow_zero && date && Ext.isString(date)) {
+      // New: handle the common case of an empty/zero date
+      //  better than 'Nov 30, 00-1 12:00 AM' which is what the typical format returns
+      if(date == '0000-00-00' || date == '0000-00-00 00:00:00') {
+        return ['<span class="ra-null-val">',date,'</span>'].join('');
+      }
+    }
+    var dt = Date.parseDate(date,"Y-m-d H:i:s");
+    if (! dt) { return date; }
+    return dt.format(format);
+  }
 }
 
 
@@ -4470,8 +4474,11 @@ Ext.ux.RapidApp.num2pct = function(num) {
 Ext.ux.RapidApp.NO_DBIC_REL_LINKS = false;
 
 Ext.ux.RapidApp.DbicRelRestRender = function(c) {
-	var disp = c.disp || c.record.data[c.render_col];
+	var disp = c.disp || c.record.data[c.render_col] || c.value;
 	var key_value = c.record.data[c.key_col];
+
+  // multi-rel: no link for 0 records:
+  if(c.multi_rel && c.value == '0') { return disp; }
 	
 	if(!c.value) { 
 		if(!disp && !key_value) {
@@ -4495,11 +4502,10 @@ Ext.ux.RapidApp.DbicRelRestRender = function(c) {
 	
 	
 	if(c.rs) {
-		// multi-rel: no link for 0 records:
-		if(c.value == '0') { return disp; }
+		if(!key_value)     { return disp; }
 		// For multi-rel. value actually only contains the count of related
 		// rows. key_value will contain the id of the row from which the rs originated
-		url += key_value + '/rs/' + c.rs; 
+		url += key_value + '/rel/' + c.rs; 
 	}
 	else {
 		// For single-rel
@@ -4826,6 +4832,70 @@ Ext.ux.RapidApp.renderBase64 = function(str) {
     );
   } catch(err) { 
     return str; 
+  }
+}
+
+// http://stackoverflow.com/a/15405953
+String.prototype.hex2bin = function () {
+  var i = 0, l = this.length - 1, bytes = [];
+  for (i; i < l; i += 2) {
+    bytes.push(parseInt(this.substr(i, 2), 16));
+  }
+  return String.fromCharCode.apply(String, bytes);
+}
+
+String.prototype.bin2hex = function () {
+  var i = 0, l = this.length, chr, hex = '';
+  for (i; i < l; ++i) {
+    chr = this.charCodeAt(i).toString(16)
+    hex += chr.length < 2 ? '0' + chr : chr;
+  }
+  return hex;
+}
+
+Ext.ux.RapidApp.formatHexStr = function(str) {
+  
+  // http://stackoverflow.com/a/4017825
+  function splitStringAtInterval (string, interval) {
+    var result = [];
+    for (var i=0; i<string.length; i+=interval)
+      result.push(string.substring (i, i+interval));
+    return result;
+  }
+  
+  str = ['0x',str.toUpperCase()].join('');
+  return splitStringAtInterval(str,8).join(' ');
+}
+
+Ext.ux.RapidApp.renderHex = function(s) {
+  if(s) {
+    var orig_length = s.length;
+    var hex_str = Ext.ux.RapidApp.formatHexStr(s.bin2hex());
+    return [
+      '<code ',
+        'title="binary data (length ',orig_length,')" ',
+        'class="ra-hex-string">',
+        hex_str,
+      '</code>'
+    ].join('');
+  }
+  else {
+    return Ext.ux.showNull(s);
+  }
+}
+
+// Returns a renderer that will return an img tag with its data
+// embedded as base64. This is useful for blob columns which
+// contain raw/binary image data
+Ext.ux.RapidApp.getEmbeddedImgRenderer = function(mime_type) {
+  mime_type = mime_type || 'application/octet-stream';
+  return function(data) {
+    if(data) {
+      return ['<img src="data:',mime_type,';base64,',base64.encode(data),'">'].join('');
+    }
+    else {
+      return Ext.ux.showNull(data);
+    }
   }
 }
 

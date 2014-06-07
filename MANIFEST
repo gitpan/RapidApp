@@ -147,14 +147,13 @@ lib/RapidApp/ExtJS/TreeNode.pm
 lib/RapidApp/ExtJS/TreePanel.pm
 lib/RapidApp/Functions.pm
 lib/RapidApp/HTML/RawHtml.pm
-lib/RapidApp/HTML/Snippet.pm
-lib/RapidApp/HTML/Snippet/TagProcessor.pm
 lib/RapidApp/Handler.pm
 lib/RapidApp/Helper.pm
 lib/RapidApp/Helper/Traits/AuthCore.pm
 lib/RapidApp/Helper/Traits/NavCore.pm
 lib/RapidApp/Helper/Traits/RapidDbic.pm
 lib/RapidApp/Helper/Traits/TabGui.pm
+lib/RapidApp/Helper/Traits/Templates.pm
 lib/RapidApp/Include.pm
 lib/RapidApp/JSON/MixedEncoder.pm
 lib/RapidApp/JSON/RawJavascript.pm
@@ -162,6 +161,9 @@ lib/RapidApp/JSON/ScriptWithData.pm
 lib/RapidApp/JSONFunc.pm
 lib/RapidApp/Manual.pod
 lib/RapidApp/Manual/Assets.pod
+lib/RapidApp/Manual/Bootstrap.pod
+lib/RapidApp/Manual/Installation.pod
+lib/RapidApp/Manual/RapidDbic.pod
 lib/RapidApp/Manual/TableSpec.pod
 lib/RapidApp/Model.pm
 lib/RapidApp/ModuleDispatcher.pm
@@ -389,9 +391,10 @@ share/assets/icons/paste_plain.png
 share/assets/icons/pencil.png
 share/assets/icons/pg.png
 share/assets/icons/pg_multi.png
+share/assets/icons/pg_multi_red.png
+share/assets/icons/pg_red.png
 share/assets/icons/power_on-394.gif
 share/assets/icons/printer.png
-share/assets/icons/rapidapp_icon_small.ico
 share/assets/icons/rapidapp_icon_small.png
 share/assets/icons/rdp_icon.png
 share/assets/icons/reboot-240.gif
@@ -566,6 +569,7 @@ share/assets/misc/images/powered_intellitree_footer.png
 share/assets/misc/images/progress_green_blocks.gif
 share/assets/misc/images/rapidapp_catalyst_logo.png
 share/assets/misc/images/rapidapp_icon_medium.png
+share/assets/misc/images/rapidapp_icon_small.ico
 share/assets/misc/images/rapidapp_logo_small.png
 share/assets/misc/images/rapidapp_logo_tiny.png
 share/assets/misc/images/rapidapp_powered_logo_small.png

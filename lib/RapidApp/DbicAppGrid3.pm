@@ -61,9 +61,9 @@ sub apply_default_tabtitle {
 	my $class = $self->ResultClass;
 	
 	my $title = try{$class->TableSpec_get_conf('title_multi')} || try{
-		my $from = $self->ResultSource->from;
-		$from = (split(/\./,$from,2))[1] || $from; #<-- get 'table' for both 'db.table' and 'table' format
-		return $from;
+		my $table = $class->table;
+		$table = (split(/\./,$table,2))[1] || $table; #<-- get 'table' for both 'db.table' and 'table' format
+		return $table;
 	};
 	
 	my $iconCls = try{$class->TableSpec_get_conf('multiIconCls')};
@@ -83,18 +83,39 @@ around 'content' => sub {
   my $ret = $self->$orig(@_);
   
   if($self->show_base_conditions_in_header) {
-    my $resultset_condition = try{$ret->{store}->parm->{baseParams}{resultset_condition}};
-    if ($resultset_condition) {
-    
+    my $bP = try{$ret->{store}->parm->{baseParams}} || {};
+    if ($bP->{resultset_condition}) {
       my $cls = 'blue-text';
       $ret->{tabTitleCls} = $cls;
+      $ret->{headerCfg} ||= {
+        tag   => 'div',
+        cls   => 'panel-borders ra-footer',
+        style => 'padding:3px;',
+        html  => join('',
+          '<i><span class="',$cls,'">',
+          '<b>Base Condition:</b></span> ',
+          $bP->{resultset_condition},'</i>'
+        )
+      };
+    }
+    elsif($bP->{rs_path} && $bP->{rs_method}){
+      my ($pth,$ourPth) = ($bP->{rs_path},$self->module_path);
       
-      $ret->{headerCfg} //= {
+      #http://stackoverflow.com/a/9114752
+      "$pth\0$ourPth" =~ m/^([^\0]*)(?>[^\0]*)\0\1/s;
+      $pth =~ s/^${1}//; #<-- make the path relative to us for nice display
+      
+      my $cls = 'blue-text';
+      $ret->{tabTitleCls} = $cls;
+      $ret->{headerCfg} ||= {
         tag => 'div',
         cls => 'panel-borders ra-footer',
         style => 'padding:3px;',
-        html => '<i><span class="' . $cls . '"><b>Base Condition:</b></span> ' . 
-          $resultset_condition . '</i>'
+        html  => join('',
+          '<i><span class="',$cls,'">',
+          '<b>ResultSet:</b></span> [',
+          $pth,']: ',$bP->{rs_method},'</i>'
+        )
       };
     }
   }

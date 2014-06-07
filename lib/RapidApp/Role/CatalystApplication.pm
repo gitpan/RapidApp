@@ -26,26 +26,27 @@ sub rapidApp { (shift)->model("RapidApp"); }
 has 'request_id' => ( is => 'ro', default => sub { (shift)->rapidApp->requestCount; } );
 
 # ---
-# Capture the state of the config at load/setup and override 'dump_these' to
-# dump is instead of the real config. This is being done because of RapidApp
-# plugins which pollute the config hash with refs to deep structures making
-# it too large to safely dump in the event of an exception (in debug mode).
-before 'setup_finalize' => sub {
-  my $c = shift;
-  $c->config( initial_config => clone( $c->config ) );
+# Override dump_these to limit the depth of data structures which will get
+# dumped. This is needed because RapidApp has a relatively large footprint
+# and the dump can get excessive. This gets called from finalize_error
+# when in debug mode.
+around 'dump_these' => sub {
+  my ($orig,$c,@args) = @_;
+  
+  my $these = [ $c->$orig(@args) ];
+  require Data::Dumper;
+  local $Data::Dumper::Maxdepth = 4;
+  my $VAR1; eval( Data::Dumper::Dumper($these) );
+  
+  return @$VAR1;
 };
-sub dump_these {
-    my $c = shift;
-    [ Request => $c->req ],
-    [ Response => $c->res ],
-    [ Stash => $c->stash ],
-    [ Config => $c->config->{initial_config} ];
-}
 # ---
 
 
 around 'setup_components' => sub {
 	my ($orig, $app, @args)= @_;
+  
+  $app->_normalize_catalyst_config;
   
   # Set the Encoding to UTF-8 unless one is already set:
   $app->encoding('UTF-8') unless ($app->encoding);
@@ -60,48 +61,64 @@ around 'setup_components' => sub {
 };
 
 sub setupRapidApp {
-	my $app = shift;
-	my $log = $app->log;
-	
-	$app->injectUnlessExist('RapidApp::RapidApp', 'RapidApp');
-	
-	my @names= keys %{ $app->components };
-	my @controllers= grep /[^:]+::Controller.*/, @names;
-	my $haveRoot= 0;
-	foreach my $ctlr (@controllers) {
-		if ($ctlr->isa('RapidApp::ModuleDispatcher')) {
-			$log->debug("RapidApp: Found $ctlr which implements ModuleDispatcher.");
-			$haveRoot= 1;
-		}
-	}
-	if (!$haveRoot) {
-		$log->debug("RapidApp: No Controller extending ModuleDispatcher found, using default")
-      if($app->debug);
-		$app->injectUnlessExist( 'RapidApp::Controller::DefaultRoot', 'Controller::RapidApp::Root' );
-	}
+  my $app = shift;
   
-  $app->injectUnlessExist( 'RapidApp::CatalystX::SimpleCAS::TextTranscode', 'Controller::SimpleCas::TextTranscode' );
-	
-	# for each view, inject it if it doens't exist
-	$app->injectUnlessExist( 'Catalyst::View::TT', 'View::RapidApp::TT' );
-	$app->injectUnlessExist( 'RapidApp::View::Viewport', 'View::RapidApp::Viewport' );
-	$app->injectUnlessExist( 'RapidApp::View::Printview', 'View::RapidApp::Printview' );
-	$app->injectUnlessExist( 'RapidApp::View::JSON', 'View::RapidApp::JSON' );
-	$app->injectUnlessExist( 'RapidApp::View::HttpStatus', 'View::RapidApp::HttpStatus' );
-	$app->injectUnlessExist( 'RapidApp::View::OnError', 'View::RapidApp::OnError' );
+  my @inject = (
+    ['RapidApp::RapidApp' => 'RapidApp']
+  );
   
-  # Template Controller:
-  $app->injectUnlessExist( 'RapidApp::Template::Controller', 'Controller::RapidApp::Template' );
-  $app->injectUnlessExist( 'RapidApp::Template::Controller::Dispatch', 'Controller::RapidApp::TemplateDispatch' );
-
-  # New "DirectCmp" controller:
-  $app->injectUnlessExist( 'RapidApp::Controller::DirectCmp', 'Controller::RapidApp::Module' );
+  # Views:
+  push @inject, (
+    ['Catalyst::View::TT'            => 'View::RapidApp::TT'         ],
+    ['RapidApp::View::Viewport'      => 'View::RapidApp::Viewport'   ],
+    ['RapidApp::View::Printview'     => 'View::RapidApp::Printview'  ],
+    ['RapidApp::View::JSON'          => 'View::RapidApp::JSON'       ],
+    ['RapidApp::View::HttpStatus'    => 'View::RapidApp::HttpStatus' ],
+    ['RapidApp::View::OnError'       => 'View::RapidApp::OnError'    ]
+  );
+  
+  ## This code allowed for automatic detection of an alternate, locally-defined
+  ## 'ModuleDispatcher' controller to act as the root module controller. This
+  ## functionality is not used anyplace, has never been public, and is not worth
+  ## the maintenance cost
+  #my $log = $app->log;
+  #my @names= keys %{ $app->components };
+  #my @controllers= grep /[^:]+::Controller.*/, @names;
+  #my $haveRoot= 0;
+  #foreach my $ctlr (@controllers) {
+  #  if ($ctlr->isa('RapidApp::ModuleDispatcher')) {
+  #    $log->debug("RapidApp: Found $ctlr which implements ModuleDispatcher.");
+  #    $haveRoot= 1;
+  #  }
+  #}
+  #if (!$haveRoot) {
+  #  #$log->debug("RapidApp: No Controller extending ModuleDispatcher found, using default")
+  #  #  if($app->debug);
+  #  push @inject,['RapidApp::Controller::DefaultRoot', 'Controller::RapidApp::Root'];
+  #}
+  
+  # Controllers:
+  push @inject, (
+    ['RapidApp::Controller::DefaultRoot'             => 'Controller::RapidApp::Root'             ],
+    ['RapidApp::Controller::DirectCmp'               => 'Controller::RapidApp::Module'           ],
+    ['RapidApp::Template::Controller'                => 'Controller::RapidApp::Template'         ],
+    ['RapidApp::Template::Controller::Dispatch'      => 'Controller::RapidApp::TemplateDispatch' ],
+    ['RapidApp::CatalystX::SimpleCAS::TextTranscode' => 'Controller::SimpleCas::TextTranscode'   ],
+  );
+  
+  $app->injectUnlessExist( @{$_} ) for (@inject);
+  
 };
+
+sub root_module_controller {
+  my $c = shift;
+  return $c->controller('RapidApp::Root');
+}
 
 sub injectUnlessExist {
   my ($app, $actual, $virtual)= @_;
   if (!$app->components->{$virtual}) {
-    $app->debug && $app->log->debug("RapidApp: Installing virtual $virtual");
+    $app->debug && $app->log->debug("RapidApp - Injecting Catalyst Component: $virtual");
     CatalystX::InjectComponent->inject( into => $app, component => $actual, as => $virtual );
   }
 }
@@ -368,6 +385,37 @@ sub is_ra_ajax_req {
   return 0 unless ($c->can('request') && $c->request);
   my $tp = $c->request->header('X-RapidApp-RequestContentType') or return 0;
   return $tp eq 'JSON' ? 1 : 0;
+}
+
+# Some some housework on the config for normalization/consistency:
+sub _normalize_catalyst_config {
+  my $c = shift;
+  
+  my $cnf = $c->config;
+  $cnf->{'RapidApp'} ||= {};
+  
+  # New: allow root_template_prefix/root_template to be supplied
+  # in the Template Controller config instead of Model::RapidApp
+  # since it just makes better sense from the user standpoint:
+  my $tc_cfg = $cnf->{'Controller::RapidApp::Template'} || {};
+  $cnf->{'RapidApp'}{root_template_prefix} = $tc_cfg->{root_template_prefix}
+    if(exists $tc_cfg->{root_template_prefix});
+  $cnf->{'RapidApp'}{root_template} = $tc_cfg->{root_template}
+    if(exists $tc_cfg->{root_template});
+  
+  # ---
+  # We're going to transition away from the 'Model::RapidApp' config
+  # key because it is confusing, and in the future the current "model"
+  # class will probably go away (since it is not really a model).
+  # We're going to start by merging/aliasing the config key so users
+  # can use 'RapidApp' instead of 'Model::RapidApp';
+  $cnf->{'Model::RapidApp'} = Catalyst::Utils::merge_hashes(
+    $cnf->{'Model::RapidApp'} || {},
+    $cnf->{'RapidApp'} || {}
+  );
+  $cnf->{'RapidApp'} = $cnf->{'Model::RapidApp'};
+  # ---
+
 }
 
 # New: convenience method to get the main 'Template::Controller' which
