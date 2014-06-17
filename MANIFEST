@@ -5,8 +5,7 @@ MANIFEST
 META.yml
 Makefile.PL
 README
-README.md
-README.md.bak
+README.pod
 dist.ini
 lib/Catalyst/Helper/Model/DBIC/Schema/ForRapidDbic.pm
 lib/Catalyst/Model/RapidApp/CoreSchema.pm
@@ -163,6 +162,7 @@ lib/RapidApp/Manual.pod
 lib/RapidApp/Manual/Assets.pod
 lib/RapidApp/Manual/Bootstrap.pod
 lib/RapidApp/Manual/Installation.pod
+lib/RapidApp/Manual/Plugins.pod
 lib/RapidApp/Manual/RapidDbic.pod
 lib/RapidApp/Manual/TableSpec.pod
 lib/RapidApp/Model.pm
