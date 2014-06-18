@@ -19,7 +19,10 @@ sub _navcore_inject_controller {
 };
 
 
+1;
+
 __END__
+
 
 =head1 NAME
 
@@ -78,7 +81,7 @@ point under the RapidApp::CoreSchema section in the navtree.
 
 =item *
 
-L<RapidApp>
+L<RapidApp::Manual::Plugins>
 
 =item *
 
@@ -111,6 +114,4 @@ the same terms as the Perl 5 programming language system itself.
 
 =cut
 
-
-1;
 

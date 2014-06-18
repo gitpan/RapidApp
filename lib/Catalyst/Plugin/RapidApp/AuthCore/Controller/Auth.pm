@@ -45,6 +45,17 @@ sub do_redirect {
   my ($self, $c, $href) = @_;
   $c ||= RapidApp->active_request_context;
   $href ||= $c->req->params->{redirect} || '/';
+
+  # If the client is still trying to redirect to '/auth/login' after login,
+  # it probably means they haven't configured any custom login redirect rules,
+  # send them to the best default location, the root module:
+  if($href =~ /^\/auth\/login\// && $c->session->{RapidApp_username}) {
+    my $new = join('/','',$c->module_root_namespace,'');
+    $new =~ s/\/+/\//g; #<-- strip double //
+    # Automatically swap '/auth/login/' for '/' (or where the root module is)
+    $href =~ s/^\/auth\/login\//${new}/;
+  }
+
   $href = "/$href" unless ($href =~ /^\//); #<-- enforce local
   $c->response->redirect($href);
   return $c->detach;
@@ -220,7 +231,44 @@ sub render_login_page {
 #######################################
 
 
-
 1;
+
+=head1 NAME
+
+Catalyst::Plugin::RapidApp::AuthCore::Controller::Auth - AuthCore Authentication Controller
+
+=head1 DESCRIPTION
+
+This is the controller which is automatically injected at C</auth> by the 
+L<AuthCore|Catalyst::Plugin::RapidApp::AuthCore> plugin and should not be called directly. 
+
+See the L<AuthCore|Catalyst::Plugin::RapidApp::AuthCore> plugin documentation for more info.
+
+=head1 SEE ALSO
+
+=over
+
+=item *
+
+L<Catalyst::Plugin::RapidApp::AuthCore>
+
+=item *
+
+L<RapidApp::Manual>
+
+=back
+
+=head1 AUTHOR
+
+Henry Van Styn <vanstyn@cpan.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2013 by IntelliTree Solutions llc.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=cut
 
 

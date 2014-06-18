@@ -35,7 +35,7 @@ my %WriteMakefileArgs = (
     "Catalyst::Authentication::Store::DBIx::Class" => "0.1505",
     "Catalyst::Component::ApplicationAttribute" => 0,
     "Catalyst::Controller" => 0,
-    "Catalyst::Controller::AutoAssets" => "0.28",
+    "Catalyst::Controller::AutoAssets" => "0.29",
     "Catalyst::Devel" => "1.39",
     "Catalyst::Helper" => 0,
     "Catalyst::Helper::Model::DBIC::Schema" => 0,
@@ -166,7 +166,7 @@ my %WriteMakefileArgs = (
     "lib" => 0,
     "utf8" => 0
   },
-  "VERSION" => "0.99311",
+  "VERSION" => "0.99312",
   "test" => {
     "TESTS" => "t/*.t"
   }
@@ -184,7 +184,7 @@ my %FallbackPrereqs = (
   "Catalyst::Authentication::Store::DBIx::Class" => "0.1505",
   "Catalyst::Component::ApplicationAttribute" => 0,
   "Catalyst::Controller" => 0,
-  "Catalyst::Controller::AutoAssets" => "0.28",
+  "Catalyst::Controller::AutoAssets" => "0.29",
   "Catalyst::Devel" => "1.39",
   "Catalyst::Helper" => 0,
   "Catalyst::Helper::Model::DBIC::Schema" => 0,

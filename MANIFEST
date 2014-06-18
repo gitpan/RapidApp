@@ -162,6 +162,7 @@ lib/RapidApp/Manual.pod
 lib/RapidApp/Manual/Assets.pod
 lib/RapidApp/Manual/Bootstrap.pod
 lib/RapidApp/Manual/Installation.pod
+lib/RapidApp/Manual/Modules.pod
 lib/RapidApp/Manual/Plugins.pod
 lib/RapidApp/Manual/RapidDbic.pod
 lib/RapidApp/Manual/TableSpec.pod

@@ -34,7 +34,7 @@ requires:
   Catalyst::Authentication::Store::DBIx::Class: 0.1505
   Catalyst::Component::ApplicationAttribute: 0
   Catalyst::Controller: 0
-  Catalyst::Controller::AutoAssets: 0.28
+  Catalyst::Controller::AutoAssets: 0.29
   Catalyst::Devel: 1.39
   Catalyst::Helper: 0
   Catalyst::Helper::Model::DBIC::Schema: 0
@@ -155,4 +155,4 @@ resources:
   bugtracker: https://github.com/vanstyn/RapidApp/issues
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99311
+version: 0.99312

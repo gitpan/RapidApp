@@ -14,6 +14,29 @@ use Try::Tiny;
 use Scalar::Util 'blessed';
 use Data::Dumper;
 
+=pod
+
+=head1 NAME
+
+RapidApp::Role::Controller - Role for RapidApp Controller Modules
+
+=head1 SYNOPSIS
+
+ package MyApp::Module::MyModule;
+ use Moose;
+ with 'RapidApp::Role::Controller';
+
+=head1 DESCRIPTION
+
+This is the main role for RapidApp Modules which implement a Controller interface. 
+Documentation still TDB...
+
+See: L<RapidApp::Manual::Modules>
+
+=head1 METHODS
+
+=cut
+
 use Term::ANSIColor qw(:constants);
 # TODO/FIXME: for some reason that I haven't taken the time to
 # figure out, the 'scream' util function can't be called within
@@ -522,9 +545,27 @@ after 'add_response_server_events' => sub {
 	);
 };
 
-
-
-
-
-
 1;
+
+__END__
+
+=head1 SEE ALSO
+
+=over
+
+=item *
+
+L<RapidApp::Manual::Modules>
+
+=back
+
+=head1 AUTHOR
+
+Henry Van Styn <vanstyn@cpan.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2009 by IntelliTree Solutions llc.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
