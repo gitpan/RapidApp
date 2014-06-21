@@ -132,6 +132,7 @@ requires:
   Template::Context: 0
   Template::Provider: 0
   Term::ANSIColor: 0
+  Text::CSV: 0
   Text::Glob: 0
   Text::Markdown: 1.000031
   Text::SimpleTable: 0
@@ -155,4 +156,4 @@ resources:
   bugtracker: https://github.com/vanstyn/RapidApp/issues
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99312
+version: 0.99320

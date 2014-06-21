@@ -133,6 +133,7 @@ my %WriteMakefileArgs = (
     "Template::Context" => 0,
     "Template::Provider" => 0,
     "Term::ANSIColor" => 0,
+    "Text::CSV" => 0,
     "Text::Glob" => 0,
     "Text::Markdown" => "1.000031",
     "Text::SimpleTable" => 0,
@@ -166,7 +167,7 @@ my %WriteMakefileArgs = (
     "lib" => 0,
     "utf8" => 0
   },
-  "VERSION" => "0.99312",
+  "VERSION" => "0.99320",
   "test" => {
     "TESTS" => "t/*.t"
   }
@@ -287,6 +288,7 @@ my %FallbackPrereqs = (
   "Test::HTML::Content" => 0,
   "Test::Kwalitee" => 0,
   "Test::More" => 0,
+  "Text::CSV" => 0,
   "Text::Glob" => 0,
   "Text::Markdown" => "1.000031",
   "Text::SimpleTable" => 0,
