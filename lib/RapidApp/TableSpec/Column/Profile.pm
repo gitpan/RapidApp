@@ -47,6 +47,7 @@ push @number_summary_funcs, (
 sub DEFAULT_PROFILES {{
   
   BASE => {
+    broad_data_type => 'text',
     is_nullable => 1, #<-- initial/default
     renderer => ['Ext.ux.showNull'] ,
     editor => { xtype => 'textfield', minWidth => 80, minHeight => 22 },
@@ -68,11 +69,13 @@ sub DEFAULT_PROFILES {{
   },
   
   number => {
+    broad_data_type => 'number',
     editor => { xtype => 'numberfield', style => 'text-align:left;' },
     multifilter_type => 'number',
     summary_functions => \@number_summary_funcs
   },
   int => {
+    broad_data_type => 'integer',
     editor => { xtype => 'numberfield', style => 'text-align:left;', allowDecimals => \0 },
   },
   
@@ -161,6 +164,17 @@ sub DEFAULT_PROFILES {{
     summary_functions => \@text_summary_funcs,
   },
   datetime => {
+    # We now disable quick search by default for datetime/date columns because
+    # it is more trouble than it is worth. Very rarely would it actually be useful,
+    # since the user can still use MultiFilter where they can do things like
+    # a relative search. Also, certain databases (PostgreSQL) throw exceptions
+    # when querying a datetime column with an invalid datetime string, so, properly
+    # supporting this will require server-side validation, which mary vary from
+    # backend to backend, etc. TODO: we may look at adding this support in the
+    # future using DBIx::Introspector.
+    # Note: the user is still free to manually change 'no_quick_search' if they
+    # really want it - this is just the default...
+    no_quick_search => \1,
     editor => { 
       xtype => 'xdatetime2', 
       plugins => ['form-relative-datetime'], 
@@ -173,6 +187,8 @@ sub DEFAULT_PROFILES {{
     summary_functions => \@date_summary_funcs
   },
   date => {
+    # See comment above in the datetime section...
+    no_quick_search => \1,
     editor => { 
       xtype => 'datefield', 
       plugins => ['form-relative-datetime'], 
@@ -183,6 +199,11 @@ sub DEFAULT_PROFILES {{
     renderer => ["Ext.ux.RapidApp.getDateFormatter('M d, Y')"],
     multifilter_type => 'date',
     summary_functions => \@date_summary_funcs
+  },
+  otherdate => { 
+    # for other general 'date' columns that we have no special handling for yet,
+    # like 'year' in postgres
+    no_quick_search => \1,
   },
   money => {
     editor => { xtype => 'numberfield', style => 'text-align:left;', decimalPrecision => 2 },
@@ -221,6 +242,12 @@ sub DEFAULT_PROFILES {{
     allow_add => \0,
     allow_edit => \0,
     allow_batchedit => \0
+  },
+  unsearchable => {
+    # This profile is for data types for which we do not yet properly support searching on,
+    # like PostgreSQL 'tsvector' and array columns...
+    no_quick_search => \1,
+    no_multifilter => \1
   }
 
 }};
