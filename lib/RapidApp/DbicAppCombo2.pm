@@ -63,16 +63,16 @@ sub read_records {
   }
   # --
   
-	my @rows = ();
-	foreach my $row ($Rs->all) {
-		my $data = { $row->get_columns };
-		push @rows, $data;
-	}
+  # New: fail-safe max-rows:
+  $Rs = $Rs->search_rs(undef,{ rows => 500 }) unless (exists $Rs->{attrs}{rows});
 
-	return {
-		rows => \@rows,
-		results => scalar @rows
-	};
+  $Rs = $Rs->search_rs(undef, { result_class => 'DBIx::Class::ResultClass::HashRefInflator' });
+  my $rows = [ $Rs->all ];
+
+  return {
+    rows    => $rows,
+    results => scalar(@$rows)
+  };
 }
 
 

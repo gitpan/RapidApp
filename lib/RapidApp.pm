@@ -2,7 +2,10 @@ package RapidApp;
 use strict;
 use warnings;
 
-our $VERSION = '0.99333';
+# Min supported Perl is currently v5.10
+use 5.010;
+
+our $VERSION = '0.99400';
 
 # ABSTRACT: Turnkey ajaxy webapps
 

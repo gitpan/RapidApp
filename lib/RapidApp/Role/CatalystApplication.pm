@@ -5,7 +5,6 @@ use RapidApp::Include 'perlutil';
 use RapidApp::RapidApp;
 use Scalar::Util 'blessed';
 use CatalystX::InjectComponent;
-use RapidApp::CatalystX::SimpleCAS::TextTranscode;
 use Hash::Merge;
 use RapidApp::Debug 'DEBUG';
 use Text::SimpleTable::AutoWidth;
@@ -18,6 +17,8 @@ use URI::Escape;
 
 use RapidApp;
 use Template;
+
+use Catalyst::Controller::SimpleCAS 0.991;
 
 sub rapidapp_version { $RapidApp::VERSION }
 
@@ -55,7 +56,7 @@ around 'dump_these' => sub {
       # Note: the functioning of this stuff in Catalyst is legacy and may be 
       # refactored in a later version of Catalyst...
       $req_arr,$res_arr,
-      @$VAR1
+      @{$VAR1 || []}
     );
   }
 
@@ -124,7 +125,7 @@ sub setupRapidApp {
     ['RapidApp::Controller::DirectCmp'               => 'Controller::RapidApp::Module'           ],
     ['RapidApp::Template::Controller'                => 'Controller::RapidApp::Template'         ],
     ['RapidApp::Template::Controller::Dispatch'      => 'Controller::RapidApp::TemplateDispatch' ],
-    ['RapidApp::CatalystX::SimpleCAS::TextTranscode' => 'Controller::SimpleCas::TextTranscode'   ],
+    ['Catalyst::Controller::SimpleCAS'               => 'Controller::SimpleCAS'                  ],
   );
   
   $app->injectUnlessExist( @{$_} ) for (@inject);
