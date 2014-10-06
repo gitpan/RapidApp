@@ -280,6 +280,8 @@ share/assets/icons/bullet_arrow_up.png
 share/assets/icons/bullet_delete.png
 share/assets/icons/bullet_key.png
 share/assets/icons/bullet_wrench.png
+share/assets/icons/businessman.png
+share/assets/icons/businessmen.png
 share/assets/icons/cancel.png
 share/assets/icons/catalyst-transparent.png
 share/assets/icons/catalyst.png
@@ -305,7 +307,9 @@ share/assets/icons/cross.png
 share/assets/icons/cross_light.png
 share/assets/icons/cross_light_12x12.png
 share/assets/icons/cross_tiny_light.png
+share/assets/icons/data_preferences.png
 share/assets/icons/data_view.png
+share/assets/icons/data_views.png
 share/assets/icons/database.png
 share/assets/icons/database_table.png
 share/assets/icons/date.png
@@ -321,6 +325,7 @@ share/assets/icons/email.png
 share/assets/icons/email_14x14.png
 share/assets/icons/email_go.png
 share/assets/icons/emails.png
+share/assets/icons/environment_network.png
 share/assets/icons/exclamation.png
 share/assets/icons/expand-all.gif
 share/assets/icons/film_14x14.png
@@ -429,6 +434,8 @@ share/assets/icons/tree-expand.png
 share/assets/icons/user.png
 share/assets/icons/user_add.png
 share/assets/icons/user_gray.png
+share/assets/icons/user_pref.png
+share/assets/icons/user_prefs.png
 share/assets/icons/wand.png
 share/assets/icons/warning.png
 share/assets/icons/wrench.png

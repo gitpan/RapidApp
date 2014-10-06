@@ -44,8 +44,8 @@ __PACKAGE__->apply_TableSpec;
 __PACKAGE__->TableSpec_set_conf( 
 	title => 'Source Default View',
 	title_multi => 'Source Default Views',
-	#iconCls => 'ra-icon-data-view',
-	#multiIconCls => 'ra-icon-data-views',
+	iconCls => 'ra-icon-data-preferences',
+	multiIconCls => 'ra-icon-data-preferences',
 	display_column => 'source_model'
 );
 
@@ -55,7 +55,7 @@ __PACKAGE__->TableSpec_set_conf('column_properties_ordered',
 
 	source_model => {
 		header => 'Source/Model',
-		width	=> 120,
+		width	=> 250,
     allow_add => \0,
     allow_edit => \0
 	},

@@ -132,18 +132,19 @@ __PACKAGE__->apply_TableSpec;
 __PACKAGE__->TableSpec_set_conf( 
 	title => 'User',
 	title_multi => 'Users',
-	#iconCls => 'ra-icon-user',
-	#multiIconCls => 'ra-icon-group',
+	iconCls => 'ra-icon-businessman',
+	multiIconCls => 'ra-icon-businessmen',
 	display_column => 'username',
   priority_rel_columns => 1,
   columns => {
-    id            => { width => 40,   profiles => ['noedit'] },
-    username      => { width => 90,   },
-    password      => { width => 70,    profiles => ['noedit'] },
-    full_name     => { width => 120, hidden => \1   },
+    id            => { width => 40,  header => 'Id',   profiles => ['noedit'] },
+    username      => { width => 90,  header => 'Username'  },
+    password      => { width => 120, header => 'Password (hashed)',  profiles => ['noedit'] },
+    full_name     => { width => 120, header => 'Full Name', hidden => \1   },
     
     last_login_ts => { 
       hidden => \1, # temp: hide only so it doesn't show between password and set_pw
+      header => 'Last Login',
       width => 120,  allow_edit => \0, allow_add => \0  
     },
     
@@ -159,7 +160,20 @@ __PACKAGE__->TableSpec_set_conf(
       no_column => \1, no_quick_search => \1, no_multifilter => \1
     },
     
-    set_pw        => { width => 130,    },
+    
+    
+    roles         => { width => 220,  header => 'Roles'  },
+    sessions      => { width => 120,  header => 'Sessions'  },
+    saved_states  => { width => 130,  header => 'Saved Views' },
+    user_to_roles => { width => 130, header => 'User to Roles', hidden => \1   },
+    
+    set_pw => { 
+      header => 'Set Password*', 
+      width => 130,    
+      editor => { xtype => 'ra-change-password-field' },
+      renderer => 'Ext.ux.RapidApp.renderSetPwValue'
+    },
+    
   }
 );
 
