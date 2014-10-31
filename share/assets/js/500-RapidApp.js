@@ -163,6 +163,18 @@ Ext.ux.RapidApp.errMsgHandler = function(title,msg,as_text) {
 	var win;
 	
 	var body = as_text ? '<pre>' + Ext.util.Format.nl2br(msg) + '</pre>' : msg;
+
+  // This is a bit lazy (string match rather than real API) to change
+  // the icon for the case of a Database Error, but it is fast/simple
+  var headCls = ['ra-exception-heading'];
+  if(title.search('Database Error ') == 0){
+    headCls.push('ra-icon-data-warning-32x32');
+    // While at it, convert the known dash (-) sequence into a pretty <hr>
+    body = body.replace(
+      "----------------",
+      '<hr color="#808080" size="1">'
+    );
+  }
 	
 	win = new Ext.Window({
 		manager: Ext.ux.RapidApp.CustomPromptWindowGroup,
@@ -177,7 +189,7 @@ Ext.ux.RapidApp.errMsgHandler = function(title,msg,as_text) {
 			frame: true,
 			headerCfg: {
 				tag: 'div',
-				cls: 'ra-exception-heading',
+				cls: headCls.join(' '),
 				html: title
 			},
 			autoScroll: true,

@@ -196,15 +196,10 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 						field.cycleOnShow = false;
 						field.manuOnShow = false;
 						
-						//Call 'expand' for combos and other fields with an expand method (cycle-field)
-						if(Ext.isFunction(field.expand)) {
+						//Call 'onTriggerClick' for combos and other fields with an onTriggerClick method (cycle-field)
+						if(Ext.isFunction(field.onTriggerClick)) {
 							ed.on('startedit',function(){
-								this.expand();
-								// If it is specifically a combo, call expand again to make sure
-								// it really expands
-								if(Ext.isFunction(this.doQuery)) {
-									this.expand.defer(50,this);
-								}
+								this.onTriggerClick();
 							},field);
 						}
 						
@@ -453,7 +448,13 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 		});
 		
 		store.addEvents('beforeremove');
-		store.removeOrig = store.remove;
+		store.removeOrig = store.remove || Ext.emptyFn;
+    // This is a bastardized thing - remove() is documented as only to be called when removing
+    // a record from the store, but somehow it is also being called from the container removal
+    // machinery - this is either an ExtJS "bug" or a bug in ourselves someplace... In any case,
+    // when the latter happens 'record' below is actually the component being removed, and we
+    // hook into this and fire the beforeremove event which we are listening to for unsaved
+    // change detection (see our beforeRemoveConfirm() function further down)
 		store.remove = function(record) {
 			if(store.fireEvent('beforeremove',store,record) !== false) {
 				return store.removeOrig.apply(store,arguments);
@@ -517,7 +518,7 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 			var records = [];
 			store.each(function(Record){
 				if(Record.phantom) { records.push(Record); } 
-			});
+			},store);
 			return records;
 		};
 		
@@ -555,8 +556,12 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 		};
 		
 		store.eachTiedChild = function(fn) {
-			Ext.iterate(store.tiedChildStores,function(id,str) {
-				fn(str);
+			Ext.iterate(store.tiedChildStores,function(id,stor) {
+				// Call the function on the child store as long as its data object still
+        // exists. If it doesn't, this indicates the child store has already been
+        // destroyed or is otherwise no longer valid -- delete it from the index
+        // and move on: 
+        stor.data ? fn.call(stor,stor) : delete store.tiedChildStores[id];
 			});
 		};
 		
@@ -1440,9 +1445,9 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 		}
 		
 		component.confirmRemoveInProg = true;
-		
+
 		var store = this.cmp.store;
-		if(!store || !store.hasAnyPendingChanges()) { 
+		if(!store || !store.data || !store.hasAnyPendingChanges()) { 
 			c.un('beforeremove',this.beforeRemoveConfirm,this);
 			return true; 
 		}

@@ -4,7 +4,7 @@ author:
   - 'Henry Van Styn <vanstyn@cpan.org>'
 build_requires:
   Catalyst: 0
-  Catalyst::Runtime: 5.90071
+  Catalyst::Runtime: 5.90075
   HTTP::Headers::Util: 0
   Module::Install::Catalyst: 0
   MooseX::MarkAsMethods: 0.15
@@ -45,7 +45,7 @@ requires:
   Catalyst::Plugin::AutoAssets: 0
   Catalyst::Plugin::Session::State::Cookie: 0.17
   Catalyst::Plugin::Session::Store::DBIC: 0.14
-  Catalyst::Runtime: 5.90071
+  Catalyst::Runtime: 5.90075
   Catalyst::ScriptRunner: 0
   Catalyst::Test: 0
   Catalyst::Utils: 0
@@ -55,12 +55,12 @@ requires:
   Class::MOP::Class: 0
   Clone: 0
   DBD::SQLite: 1.42
-  DBIx::Class: 0.08270
+  DBIx::Class: 0.082810
   DBIx::Class::Core: 0
   DBIx::Class::PassphraseColumn: 0.02
   DBIx::Class::ResultSet: 0
   DBIx::Class::Schema: 0
-  DBIx::Class::Schema::Diff: 1.00
+  DBIx::Class::Schema::Diff: 1.02
   DBIx::Class::Schema::Loader: 0.07040
   Data::Dumper: 0
   Data::Dumper::Concise: 0
@@ -107,9 +107,10 @@ requires:
   PPI::HTML: 0
   Params::Validate: 0
   Path::Class: 0
-  Plack: 1.0030
+  Plack: 1.0033
   Pod::Usage: 0
-  SQL::Translator: 0.11018
+  SQL::Abstract: 1.81
+  SQL::Translator: 0.11020
   Scalar::Util: 0
   Spreadsheet::ParseExcel: 0
   Spreadsheet::ParseExcel::Utility: 0
@@ -144,4 +145,4 @@ resources:
   bugtracker: https://github.com/vanstyn/RapidApp/issues
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99402
+version: 0.99500

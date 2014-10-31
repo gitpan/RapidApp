@@ -35,6 +35,7 @@ lib/RapidApp/AppDV.pm
 lib/RapidApp/AppDV/HtmlTable.pm
 lib/RapidApp/AppDV/TTController.pm
 lib/RapidApp/AppDataStore2.pm
+lib/RapidApp/AppDbicLink2.pm
 lib/RapidApp/AppDbicTree.pm
 lib/RapidApp/AppExplorer.pm
 lib/RapidApp/AppForm.pm
@@ -310,6 +311,7 @@ share/assets/icons/cross_tiny_light.png
 share/assets/icons/data_preferences.png
 share/assets/icons/data_view.png
 share/assets/icons/data_views.png
+share/assets/icons/data_warning_32x32.png
 share/assets/icons/database.png
 share/assets/icons/database_table.png
 share/assets/icons/date.png
