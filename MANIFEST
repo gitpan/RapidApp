@@ -200,6 +200,7 @@ lib/RapidApp/View/HttpStatus.pm
 lib/RapidApp/View/JSON.pm
 lib/RapidApp/View/OnError.pm
 lib/RapidApp/View/Printview.pm
+lib/RapidApp/View/Template.pm
 lib/RapidApp/View/Viewport.pm
 lib/RapidApp/View/Web1Render.pm
 lib/RapidApp/Web1RenderContext.pm
@@ -365,6 +366,7 @@ share/assets/icons/openvpn_gui.png
 share/assets/icons/openvpn_gui_green.png
 share/assets/icons/openvpn_gui_red.png
 share/assets/icons/page.png
+share/assets/icons/page_cancel.png
 share/assets/icons/page_excel.png
 share/assets/icons/page_white.png
 share/assets/icons/page_white_acrobat.png
@@ -631,6 +633,7 @@ share/templates/rapidapp/ext_loginpage.tt
 share/templates/rapidapp/ext_page.tt
 share/templates/rapidapp/ext_printview.tt
 share/templates/rapidapp/ext_viewport.tt
+share/templates/rapidapp/http-404.html
 share/templates/rapidapp/http-404.tt
 share/templates/rapidapp/http-status.tt
 share/templates/rapidapp/misc/property_table.tt
@@ -649,6 +652,7 @@ t/release/kwalitee.t
 t/release/pod.t
 t/release/podcoverage.t
 t/release/podspelling.t
+t/unit/_binary_op_fuser.t
 t/var/testapps/TestRA-ChinookDemo/Makefile.PL
 t/var/testapps/TestRA-ChinookDemo/lib/TestRA/ChinookDemo.pm
 t/var/testapps/TestRA-ChinookDemo/lib/TestRA/ChinookDemo/DB.pm

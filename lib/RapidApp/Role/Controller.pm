@@ -266,8 +266,8 @@ sub local_args {
 	
 	my $path = '/' . $self->c->req->path;
 	my $base = quotemeta($self->base_url . '/');
-	$path =~ /^${base}(.+$)/;
-	my $argpath = defined $1 ? $1 : '';
+	my ($match) = ($path =~ /^${base}(.+$)/);
+	my $argpath = defined $match ? $match : '';
 	return split('/',$argpath);
 }
 
@@ -329,18 +329,18 @@ sub controller_dispatch {
 	# if there were unprocessed arguments which were not an action, and there was no default action, generate a 404
 	# UPDATE: unless new 'accept_subargs' attr is true (see attribute declaration above)
 	if (defined $opt && !$self->accept_subargs) {
-		$self->c->log->debug("--> " . RED . BOLD . "unknown action: $opt" . CLEAR) if($self->c->debug);
-		if ($ct eq 'text/x-RapidApp-FormSubmitResponse'
-			|| $ct eq 'JSON'
-		) {
-			die "Unknown module or action '$opt'";
-		}
-		else {
-			$self->c->stash->{current_view} = 'RapidApp::HttpStatus';
-			$self->c->res->status(404);
-			return 1;
-		}
+    # Handle the special case of browser requests for 'favicon.ico' (#57)
+    return $c->redispatch_public_path(
+      '/assets/rapidapp/misc/static/images/rapidapp_icon_small.ico'
+    ) if ($opt eq 'favicon.ico' && !$c->is_ra_ajax_req);
+
+    $self->c->log->debug(join('',"--> ",RED,BOLD,"unknown action: $opt",CLEAR)) if ($self->c->debug);
+    $c->stash->{template} = 'rapidapp/http-404.html';
+    $c->stash->{current_view} = 'RapidApp::Template';
+    $c->res->status(404);
+    return $c->detach;
 	}
+  # TODO: this logic is old and may no longer be valid...
 	elsif ($ct ne 'JSON' && $ct ne 'text/x-rapidapp-form-response' && $self->auto_web1) {
 		$self->c->log->debug("--> " . GREEN . BOLD . "[web1_content]" . CLEAR . ". (no action)")
       if($self->c->debug);

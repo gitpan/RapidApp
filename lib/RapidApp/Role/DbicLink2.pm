@@ -1758,8 +1758,9 @@ sub inflate_multifilter_date {
 	@parts = ();
 	while(length $str) {
 		my ($num,$unit);
-		$str =~ s/^(\d+)//; $num = $1;
-		$str =~ s/^(\D+)//; $unit = $1;
+    my $match;
+		($match) = ($str =~ /^(\d+)/); $str =~ s/^(\d+)//; $num  = $match;
+		($match) = ($str =~ /^(\D+)/); $str =~ s/^(\D+)//; $unit = $match;
 		
 		#custom support for "weeks":
 		if($unit eq 'w' || $unit eq 'week' || $unit eq 'weeks' || $unit eq 'wk' || $unit eq 'wks') {
