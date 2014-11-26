@@ -60,7 +60,8 @@ my $default_data_type_profiles = {
   varbinary   => [ 'blob' ],
   year        => [ 'otherdate' ],
   tsvector    => [ 'bigtext','unsearchable','virtual_source' ], #<-- postgres-specific
-  boolean     => ['bool']
+  boolean     => ['bool'],
+  ipaddr      => ['unsearchable'] #<-- postgres-specific
 };
 __PACKAGE__->mk_classdata( 'TableSpec_data_type_profiles' );
 __PACKAGE__->TableSpec_data_type_profiles({ %$default_data_type_profiles }); 
@@ -1021,6 +1022,8 @@ sub proxy_method_get_changed {
 	my $self = shift;
 	my $method = shift;
 	
+  no warnings 'uninitialized'; # because we might compare undef values
+  
 	my $origRow = $self;
 	my %old = ();
 	if($self->in_storage) {

@@ -15,10 +15,10 @@ build_requires:
   lib: 0
   utf8: 0
 configure_requires:
-  ExtUtils::MakeMaker: 6.30
-  File::ShareDir::Install: 0.03
+  ExtUtils::MakeMaker: 0
+  File::ShareDir::Install: 0.06
 dynamic_config: 0
-generated_by: 'Dist::Zilla version 5.016, CPAN::Meta::Converter version 2.140640'
+generated_by: 'Dist::Zilla version 5.025, CPAN::Meta::Converter version 2.142690'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -68,6 +68,7 @@ requires:
   DateTime::Format::SQLite: 0
   Devel::StackTrace::WithLexicals: 0
   Digest::MD5: 0
+  Digest::SHA1: 0
   Excel::Writer::XLSX: 0
   Exporter: 0
   File::ShareDir: 0
@@ -142,7 +143,8 @@ requires:
   strict: 0
   warnings: 0
 resources:
+  IRC: irc://irc.perl.org/#rapidapp
   bugtracker: https://github.com/vanstyn/RapidApp/issues
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99501
+version: 0.99600

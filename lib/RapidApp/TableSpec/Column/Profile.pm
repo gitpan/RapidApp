@@ -127,7 +127,7 @@ sub DEFAULT_PROFILES {{
   },
   bigtext => {
     width => 150,
-    renderer 	=> ['Ext.util.Format.nl2br'],
+    renderer 	=> ['Ext.ux.RapidApp.nl2brWrap'],
     editor		=> { xtype => 'textarea', grow => \1 },
     summary_functions => \@text_summary_funcs 
   },
@@ -165,7 +165,7 @@ sub DEFAULT_PROFILES {{
   },
   email => {
     width => 100,
-    editor => { xtype => 'textfield' },
+    editor => { xtype => 'textfield', vtype => 'email' },
     summary_functions => \@text_summary_funcs,
   },
   datetime => {
@@ -266,10 +266,13 @@ sub DEFAULT_PROFILES {{
 
 }};
 
+
+our $SKIP_BASE = 0;
+
 # Cache collapsed profile sets process-wide for performance:
 my %Sets = ();
 sub get_set {
-  my @profiles = uniq(&DEFAULT_BASE_PROFILES(),@_);
+  my @profiles = $SKIP_BASE ? uniq(@_) : uniq(&DEFAULT_BASE_PROFILES(),@_);
   my $key = join('|',@profiles);
   unless (exists $Sets{$key}) {
     my $profile_defs = &DEFAULT_PROFILES();
@@ -282,6 +285,28 @@ sub get_set {
   }
   return $Sets{$key};
 }
+
+# One-off function to apply profiles to an arbitrary hashref w/o considering
+# the base profile(s) and w/o overriding any existing params. This was added
+# for GitHub #77 -- see special invocation in RapidApp::TableSpec::Role::DBIC
+sub _apply_profiles_soft {
+  shift if ($_[0] && $_[0] eq __PACKAGE__); #<-- support calling as class method
+  my ($cnf,@profiles) = @_;
+  
+  die "apply_profiles(): first argument must be a HashRef" unless ($cnf && ref($cnf) eq 'HASH');
+  
+  @profiles = @{$cnf->{profiles}} if (
+    scalar(@profiles) == 0
+    && $cnf->{profiles}
+    && ref($cnf->{profiles}) eq 'ARRAY'
+  );
+  
+  die "No profiles supplied" unless (scalar(@profiles) > 0);
+  
+  local $SKIP_BASE = 1;
+  $cnf = merge( clone(&get_set(@profiles)) ,$cnf)
+}
+
 
 1;
 

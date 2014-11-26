@@ -46,7 +46,7 @@ Ext.ux.RapidApp.AppCombo2.ComboBox = Ext.extend(Ext.form.ComboBox,{
 
     // Force the combo to show/hide the list on click just like a normal 
     // dropdown would if not in edit mode
-    if(this.editable) {
+    if(this.editable && ! this.no_click_trigger) {
       this.on('afterrender',function(cmb){
         cmb.getEl().on('click',function(el){
           cmb.isExpanded() ? cmb.collapse() : cmb.onTriggerClick();
@@ -954,9 +954,7 @@ Ext.ux.RapidApp.CasImageField = Ext.extend(Ext.ux.RapidApp.CasUploadField,{
 			'>';
 		this.setValue(img_tag);
 		this.onActionComplete();
-	},
-	
-
+	}
 	
 });
 Ext.reg('cas-image-field',Ext.ux.RapidApp.CasImageField);
@@ -1582,7 +1580,7 @@ Ext.reg('datastore-app-field',Ext.ux.RapidApp.DataStoreAppField);
 
 Ext.ux.RapidApp.ListEditField = Ext.extend(Ext.ux.RapidApp.ClickActionField,{
 	
-	fieldClass: 'ra-datastore-app-field wrap-on',
+	fieldClass: 'ra-datastore-app-field ra-wrap-on',
 	invalidClass: 'ra-datastore-app-field-invalid',
 	actionOnShow: true,
 	

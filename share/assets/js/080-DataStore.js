@@ -441,11 +441,12 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 		});
 		
 		store.on('beforewrite',function(ds,action,records,options,arg) {
-			if(action == 'create'){
-				var colnames = [];
-				store.fields.each(function(field){ colnames.push(field.name); });
-				options.params.create_columns = Ext.encode(colnames);
-			}
+      // Is this needed any more?? Don't think so, removing (2014-11-24 by HV)
+      //if(action == 'create'){
+      //	var colnames = [];
+      //	store.fields.each(function(field){ colnames.push(field.name); });
+      //	options.params.create_columns = Ext.encode(colnames);
+      //}
 			
 			
 			// -- Invalidate the total cache on write operations:
@@ -485,6 +486,9 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 		};
     
     store.isEditableColumn = function(name) {
+      // If there is no update api, no columns are editable by definition
+      if(!store.api.update) { return false; }
+      
       return store.editable_columns_map && store.editable_columns_map[name] ? true : false;
     };
 		
@@ -1085,6 +1089,12 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 		
 		// Adding a new record (phantom):
 		if(e.record.phantom) {
+    // If there is no create api, we can't edit (for create):
+      if(!e.grid.store.api.create) { 
+        e.cancel = true;
+        return false; 
+      }
+
 			// Prevent editing if allow_add is set to false:
 			if(typeof column.allow_add !== "undefined" && !column.allow_add) {
 				e.cancel = true; //<-- redundant with return false but set for good measure
@@ -1093,6 +1103,12 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 		}
 		// Editing an existing record:
 		else {
+      // If there is no update api, we can't edit (for update):
+      if(!e.grid.store.api.update) { 
+        e.cancel = true;
+        return false; 
+      }
+
 			// Prevent editing if allow_edit is set to false:
 			if(typeof column.allow_edit !== "undefined" && !column.allow_edit) {
 				e.cancel = true; //<-- redundant with return false but set for good measure
@@ -1507,7 +1523,7 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 		return false;
 	},
 	
-	getAddFormPanel: function(newRec,close_handler,callback) {
+	getAddFormPanel: function(newRec,close_handler,callback,use_formpanel) {
 		
 		var plugin = this;
 		var store = this.cmp.store;
@@ -1581,48 +1597,49 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 		var show_mask = function() { myMask.show(); }
 		var hide_mask = function() { myMask.hide(); }
 		
-		var params = {};
-		if(store.lastOptions.params) { Ext.apply(params,store.lastOptions.params); }
-		if(store.baseParams) { Ext.apply(params,store.baseParams); }
-		if(plugin.cmp.baseParams) { Ext.apply(params,plugin.cmp.baseParams); }
-		Ext.apply(params,plugin.add_form_url_params);
-		
-		show_mask();
-		Ext.Ajax.request({
-			url: plugin.cmp.add_form_url,
-			params: params,
-			failure: hide_mask,
-			success: function(response,options) {
-				
-				var formpanel = Ext.decode(response.responseText);
-				
-				Ext.each(formpanel.items,function(field) {
-					// Important: autoDestroy must be false on the store or else store-driven
-					// components (i.e. combos) will be broken as soon as the form is closed 
-					// the first time
-					if(field.store) { field.store.autoDestroy = false; }
-          // Make sure that hidden fields that can't be changed don't 
-          // block validation of the form if they are empty and erroneously
-          // set with allowBlank: false (common-sense failsafe):
-          if(field.hidden) { field.allowBlank = true; } 
-				},this);
-				
-				Ext.each(formpanel.buttons,function(button) {
-					if(button.name == 'save') {
-						button.handler = save_handler;
-					}
-					else if(button.name == 'cancel') {
-						button.handler = cancel_handler;
-					}
-				},this);
-				
-				formpanel.Record = newRec;
-				
-				hide_mask();
-				callback(formpanel);
-			},
-			scope: this
-		});
+    var attach_formpanel = function(formpanel) {
+
+      Ext.each(formpanel.buttons,function(button) {
+        if(button.name == 'save') {
+          button.handler = save_handler;
+        }
+        else if(button.name == 'cancel') {
+          button.handler = cancel_handler;
+        }
+      },this);
+      
+      formpanel.Record = newRec;
+      
+      hide_mask();
+      callback(formpanel);
+    };
+    
+    
+    if(use_formpanel) {
+      // Existing formpanel is supplied for the special dedicated add form case
+      attach_formpanel.call(this,use_formpanel);
+    }
+    else {
+      // Fetch the formpanel via Ajax from the server now:
+    
+      var params = {};
+      if(store.lastOptions.params) { Ext.apply(params,store.lastOptions.params); }
+      if(store.baseParams) { Ext.apply(params,store.baseParams); }
+      if(plugin.cmp.baseParams) { Ext.apply(params,plugin.cmp.baseParams); }
+      Ext.apply(params,plugin.add_form_url_params);
+     
+      show_mask();
+      Ext.Ajax.request({
+        url: plugin.cmp.add_form_url,
+        params: params,
+        failure: hide_mask,
+        success: function(response,options) {
+          var formpanel = Ext.decode(response.responseText);
+          attach_formpanel.call(this,formpanel);
+        },
+        scope: this
+      });
+    }
 	},
 	
 	
@@ -1721,14 +1738,6 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 				Ext.each(formpanel.items,function(field) {
 					// Don't try to edit fields that aren't loaded, exclude them from the form:
 					if(!store.hasLoadedColumn(field.name)){ return; }
-					// Important: autoDestroy must be false on the store or else store-driven
-					// components (i.e. combos) will be broken as soon as the form is closed 
-					// the first time
-					if(field.store) { field.store.autoDestroy = false; }
-          // Make sure that hidden fields that can't be changed don't 
-          // block validation of the form if they are empty and erroneously
-          // set with allowBlank: false (common-sense failsafe):
-          if(field.hidden) { field.allowBlank = true; } 
 					field.value = Rec.data[field.name];
 					new_items.push(field);
 				},this);
@@ -1755,4 +1764,142 @@ Ext.ux.RapidApp.Plugin.CmpDataStorePlus = Ext.extend(Ext.util.Observable,{
 
 });
 Ext.preg('datastore-plus',Ext.ux.RapidApp.Plugin.CmpDataStorePlus);
+
+// New for GitHub Issue #85:
+Ext.ns('Ext.ux.RapidApp');
+Ext.ux.RapidApp.DataStoreDedicatedAddForm = Ext.extend(Ext.Panel, {
+
+  addIsAllowed: function() {
+    var allowed = (
+         this.source_cmp
+      && this.source_cmp.store
+      && this.source_cmp.store.api.create
+    ) ? true : false;
+
+    // If store_exclude_api is set it hasn't been processed yet:
+    if(allowed && this.source_cmp.store_exclude_api) {
+      Ext.each(this.source_cmp.store_exclude_api,function(name){
+        if(name == 'create') { allowed = false; }
+      },this);
+    }
+
+    // Same with store_exclude_buttons - we're doing this to preserve the contract
+    // of the previous API which held that if the button is excluded, the user would
+    // have had no other way to access the add form. Keep that true:
+    if(allowed && this.source_cmp.store_exclude_buttons) {
+      Ext.each(this.source_cmp.store_exclude_buttons,function(name){
+        if(name == 'add') { allowed = false; }
+      },this);
+    }
+
+    return allowed;
+  },
+
+  initComponent: function() {
+
+    this.init_hash = window.location.hash;
+    this.bodyStyle = 'border:none;';
+    this.layout = 'fit';
+
+    if(!this.addIsAllowed()) {
+      var title = this.tabTitle || this.title || 'Add Record';
+      this.items = {
+        html: [
+          '<div class="ra-autopanel-error" style="padding:20px;">',
+            '<div class="ra-exception-heading">',
+              [title,'','&ndash;','','permission','denied'].join('&nbsp;'),
+            '</div>',
+          '</div>'
+        ].join('')
+      };
+      return Ext.ux.RapidApp.DataStoreDedicatedAddForm.superclass.initComponent.call(this);
+    }
+
+    this.on('beforerender',function() {
+  
+      var thisC = this;
+      
+      this.source_cmp.hidden = true;
+      this.source_cmp.store_autoLoad = true;
+      
+      // We expect to be within an AutoPanel (i.e. a tab)
+      // -- this is the only supported case currently
+      if(this.ownerCt && this.ownerCt.xtype == 'autopanel') {
+        this.autopanel = this.ownerCt;
+      }
+      
+      var on_load;
+      on_load = function(ds) {
+        this.dsPlugin = this.Cmp.datastore_plus_plugin;
+        var newRec        = ds.prepareNewRecord.call(this.dsPlugin),
+            close_handler = Ext.emptyFn,
+            callback      = Ext.emptyFn,
+            use_formpanel = this.FP;
+        
+        this.dsPlugin.getAddFormPanel.call(this.dsPlugin,
+          newRec,close_handler,callback,use_formpanel
+        );
+      
+        ds.un('load',on_load);
+      };
+      this.source_cmp.store.on('load',on_load,this);
+      
+      // We need to do our own close handler manually:
+      var close_fn = function() { 
+        if(thisC && thisC.autopanel) {
+          thisC.autopanel.destroy();
+        }
+      };
+      Ext.each(this.formpanel.buttons,function(btn){
+        if(btn.name == 'cancel') {
+          delete btn.name;
+          btn.handler = close_fn;
+        }
+      },this);
+      
+      // We manually need to close on 'save' because we need to give the component time
+      // to do any post-write operations (like autoload_added_record) before we destroy
+      // it since the original add_form close handling code doesn't destroy the store
+      var on_save;
+      on_save = function(ds) {
+        ds.un('save',on_save);
+        // This is still a race condition, since we don't know how long it might take for
+        // post-save operations to complete. For the special autoload_added_record case
+        // (which is by far the most common) we know that it will navigate to a new URL
+        // once it is done/ready. Check for this in a loop and close as soon as it happens,
+        // which we will wait for up to ~ 5 seconds to happen. 
+        //  TODO: find a way to handle this while avoiding a race condition at all...
+        if(this.dsPlugin.autoload_added_record) {
+          var closeIf, loop_count = 0;
+          closeIf = function() {
+            if(window.location.hash == this.init_hash && loop_count < 100) {
+              loop_count++;
+              closeIf.defer(50);
+            }
+            else {
+              close_fn();
+            }
+          }
+          closeIf();
+        }
+        else {
+          // otherwise close outright, but give it a bit extra time for good measure
+          close_fn.defer(100);
+        }
+      };
+      this.source_cmp.store.on('save',on_save,this,{ delay: 50 });
+      
+      this.FP  = this.add(this.formpanel);
+      this.Cmp = this.add(this.source_cmp);
+      
+    },this);
+  
+    Ext.ux.RapidApp.DataStoreDedicatedAddForm.superclass.initComponent.call(this);
+  }
+
+});
+Ext.reg('datastore-dedicated-add-form', Ext.ux.RapidApp.DataStoreDedicatedAddForm);
+
+// Back to prev namespace for good measure...
+Ext.ns('Ext.ux.RapidApp.Plugin');
 
