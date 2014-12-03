@@ -26,6 +26,9 @@ my @extra_args = @ARGV;
 
 pod2usage(1) if ( $help || !$name );
 
+# Attempt to catch the common error of forgetting the app name with extra args
+die "rapidapp.pl: Missing application-name!\n" if ($name =~ /^\-\-/);
+
 my @default_traits = ('TabGui');
 
 sub _traits_list {
@@ -95,6 +98,6 @@ This script is simply an extension on top of C<catalyst.pl>. See L<catalyst>.
 
 =head1 SEE ALSO
 
-L<RapidApp>, L<catalyst>, L<Catalyst::Manual>, L<Catalyst::Manual::Intro>
+L<RapidApp>, L<rdbic.pl>, L<catalyst>, L<Catalyst::Manual>, L<Catalyst::Manual::Intro>
 
 =cut

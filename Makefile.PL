@@ -22,6 +22,7 @@ my %WriteMakefileArgs = (
   },
   "DISTNAME" => "RapidApp",
   "EXE_FILES" => [
+    "script/rdbic.pl",
     "script/rapidapp.pl"
   ],
   "LICENSE" => "perl",
@@ -49,6 +50,7 @@ my %WriteMakefileArgs = (
     "Catalyst::Plugin::Session::State::Cookie" => "0.17",
     "Catalyst::Plugin::Session::Store::DBIC" => "0.14",
     "Catalyst::Runtime" => "5.90075",
+    "Catalyst::Script::Server" => 0,
     "Catalyst::ScriptRunner" => 0,
     "Catalyst::Test" => 0,
     "Catalyst::Utils" => 0,
@@ -75,6 +77,7 @@ my %WriteMakefileArgs = (
     "Excel::Writer::XLSX" => 0,
     "Exporter" => 0,
     "File::ShareDir" => 0,
+    "File::Spec" => 0,
     "FindBin" => 0,
     "Getopt::Long" => 0,
     "HTML::Entities" => 0,
@@ -119,6 +122,7 @@ my %WriteMakefileArgs = (
     "Spreadsheet::ParseExcel" => 0,
     "Spreadsheet::ParseExcel::Utility" => 0,
     "Storable" => 0,
+    "String::CamelCase" => 0,
     "String::Random" => 0,
     "Sub::Name" => 0,
     "Template" => "2.25",
@@ -158,7 +162,7 @@ my %WriteMakefileArgs = (
     "lib" => 0,
     "utf8" => 0
   },
-  "VERSION" => "0.99600",
+  "VERSION" => "0.99601",
   "test" => {
     "TESTS" => "t/*.t t/release/*.t t/unit/*.t"
   }
@@ -188,6 +192,7 @@ my %FallbackPrereqs = (
   "Catalyst::Plugin::Session::State::Cookie" => "0.17",
   "Catalyst::Plugin::Session::Store::DBIC" => "0.14",
   "Catalyst::Runtime" => "5.90075",
+  "Catalyst::Script::Server" => 0,
   "Catalyst::ScriptRunner" => 0,
   "Catalyst::Test" => 0,
   "Catalyst::Utils" => 0,
@@ -216,6 +221,7 @@ my %FallbackPrereqs = (
   "ExtUtils::MakeMaker" => 0,
   "File::ShareDir" => 0,
   "File::ShareDir::Install" => "0.06",
+  "File::Spec" => 0,
   "FindBin" => 0,
   "Getopt::Long" => 0,
   "HTML::Entities" => 0,
@@ -262,6 +268,7 @@ my %FallbackPrereqs = (
   "Spreadsheet::ParseExcel" => 0,
   "Spreadsheet::ParseExcel::Utility" => 0,
   "Storable" => 0,
+  "String::CamelCase" => 0,
   "String::Random" => 0,
   "Sub::Name" => 0,
   "Template" => "2.25",

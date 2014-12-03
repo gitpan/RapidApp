@@ -18,7 +18,7 @@ configure_requires:
   ExtUtils::MakeMaker: 0
   File::ShareDir::Install: 0.06
 dynamic_config: 0
-generated_by: 'Dist::Zilla version 5.025, CPAN::Meta::Converter version 2.142690'
+generated_by: 'Dist::Zilla version 5.025, CPAN::Meta::Converter version 2.143240'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -46,6 +46,7 @@ requires:
   Catalyst::Plugin::Session::State::Cookie: 0.17
   Catalyst::Plugin::Session::Store::DBIC: 0.14
   Catalyst::Runtime: 5.90075
+  Catalyst::Script::Server: 0
   Catalyst::ScriptRunner: 0
   Catalyst::Test: 0
   Catalyst::Utils: 0
@@ -72,6 +73,7 @@ requires:
   Excel::Writer::XLSX: 0
   Exporter: 0
   File::ShareDir: 0
+  File::Spec: 0
   FindBin: 0
   Getopt::Long: 0
   HTML::Entities: 0
@@ -116,6 +118,7 @@ requires:
   Spreadsheet::ParseExcel: 0
   Spreadsheet::ParseExcel::Utility: 0
   Storable: 0
+  String::CamelCase: 0
   String::Random: 0
   Sub::Name: 0
   Template: 2.25
@@ -147,4 +150,4 @@ resources:
   bugtracker: https://github.com/vanstyn/RapidApp/issues
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99600
+version: 0.99601

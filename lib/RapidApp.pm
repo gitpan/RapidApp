@@ -5,7 +5,7 @@ use warnings;
 # Min supported Perl is currently v5.10
 use 5.010;
 
-our $VERSION = '0.99600';
+our $VERSION = 0.99601;
 
 # ABSTRACT: Turnkey ajaxy webapps
 
@@ -59,6 +59,10 @@ See L<www.rapidapp.info|http://www.rapidapp.info> and L<RapidApp::Manual> for mo
 
   # Start the test server (default login admin/pass):
   MyApp/script/myapp_server.pl
+
+
+  # OR, start up an instant database CRUD app/utility at http://localhost:3500/
+  rdbic.pl dbi:mysql:database=somedb,root,''
 
 =head1 DESCRIPTION
 

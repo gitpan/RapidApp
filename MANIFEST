@@ -213,6 +213,7 @@ lib/RapidApp/Web1RenderContext/RenderFunction.pm
 lib/RapidApp/Web1RenderContext/RenderHandler.pm
 lib/RapidApp/Web1RenderContext/Renderer.pm
 script/rapidapp.pl
+script/rdbic.pl
 share/assets/css-scoped/ra-doc.css
 share/assets/css-scoped/ra-scoped-reset.css
 share/assets/css/010-Ext.ux.tree.CheckTreePanel.css
@@ -372,6 +373,7 @@ share/assets/icons/page_white.png
 share/assets/icons/page_white_acrobat.png
 share/assets/icons/page_white_cd.png
 share/assets/icons/page_white_compressed.png
+share/assets/icons/page_white_database.png
 share/assets/icons/page_white_excel.png
 share/assets/icons/page_white_powerpoint.png
 share/assets/icons/page_white_text.png
