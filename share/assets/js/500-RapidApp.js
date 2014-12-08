@@ -3799,6 +3799,13 @@ Ext.ux.RapidApp.AppPropertyGrid = Ext.extend(Ext.ux.grid.PropertyGrid,{
 						store.editRecordForm();
 					},
 					scope: this
+				},{
+					id: 'save',
+					qtip: 'Save',
+					handler: function() {
+						store.saveAll();
+					},
+					scope: this
 				});
 			}
 		}
@@ -3882,7 +3889,7 @@ Ext.ux.RapidApp.AppPropertyGrid = Ext.extend(Ext.ux.grid.PropertyGrid,{
 				
 				// Mark dirty like in normal grid:
 				var bindRec = propgrid.bindRecord
-				if(bindRec && bindRec.dirty && bindRec.modified[record.id]) {
+				if(bindRec && bindRec.dirty && typeof bindRec.modified[record.id] != 'undefined') {
 					metaData.css += ' x-grid3-dirty-cell';
 				}
 				

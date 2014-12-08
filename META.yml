@@ -25,6 +25,7 @@ meta-spec:
   version: 1.4
 name: RapidApp
 requires:
+  Alien::Web::ExtJS::V3: v3.4.11
   Attribute::Handlers: 0
   Carp: 0
   Carp::Clan: 6.04
@@ -87,7 +88,6 @@ requires:
   JSON: 0
   JSON::PP: 0
   JSON::XS: 0
-  JavaScript::ExtJS::V3: v3.4.11
   LWP::UserAgent: 0
   List::MoreUtils: 0
   List::Util: 0
@@ -111,6 +111,8 @@ requires:
   Params::Validate: 0
   Path::Class: 0
   Plack: 1.0033
+  Plack::Builder: 0
+  Plack::Runner: 0
   Pod::Usage: 0
   SQL::Abstract: 1.81
   SQL::Translator: 0.11020
@@ -150,4 +152,4 @@ resources:
   bugtracker: https://github.com/vanstyn/RapidApp/issues
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99601
+version: 0.99602
