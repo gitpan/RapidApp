@@ -12,7 +12,6 @@ build_requires:
   Test::Kwalitee: 0
   Test::More: 0
   inc::Module::Install: 0
-  lib: 0
   utf8: 0
 configure_requires:
   ExtUtils::MakeMaker: 0
@@ -34,7 +33,7 @@ requires:
   Catalyst::Authentication::Store::DBIx::Class: 0.1505
   Catalyst::Component::ApplicationAttribute: 0
   Catalyst::Controller: 0
-  Catalyst::Controller::AutoAssets: 0.29
+  Catalyst::Controller::AutoAssets: 0.30
   Catalyst::Controller::SimpleCAS: 0.991
   Catalyst::Devel: 1.39
   Catalyst::Helper: 0
@@ -47,13 +46,13 @@ requires:
   Catalyst::Plugin::Session::State::Cookie: 0.17
   Catalyst::Plugin::Session::Store::DBIC: 0.14
   Catalyst::Runtime: 5.90075
-  Catalyst::Script::Server: 0
   Catalyst::ScriptRunner: 0
   Catalyst::Test: 0
   Catalyst::Utils: 0
   Catalyst::View: 0
   Catalyst::View::TT: 0
   CatalystX::InjectComponent: 0
+  Class::Load: 0
   Class::MOP::Class: 0
   Clone: 0
   DBD::SQLite: 1.42
@@ -75,6 +74,7 @@ requires:
   Exporter: 0
   File::ShareDir: 0
   File::Spec: 0
+  File::Temp: 0
   FindBin: 0
   Getopt::Long: 0
   HTML::Entities: 0
@@ -112,6 +112,8 @@ requires:
   Path::Class: 0
   Plack: 1.0033
   Plack::Builder: 0
+  Plack::Component: 0
+  Plack::Middleware: 0
   Plack::Runner: 0
   Pod::Usage: 0
   SQL::Abstract: 1.81
@@ -142,8 +144,10 @@ requires:
   base: 0
   bytes: 0
   integer: 0
+  lib: 0
   namespace::autoclean: 0
   overload: 0
+  parent: 0
   perl: 5.010
   strict: 0
   warnings: 0
@@ -152,4 +156,4 @@ resources:
   bugtracker: https://github.com/vanstyn/RapidApp/issues
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99602
+version: 0.99650

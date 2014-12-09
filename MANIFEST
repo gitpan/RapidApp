@@ -24,6 +24,7 @@ lib/Catalyst/Plugin/RapidApp/RapidDbic.pm
 lib/Catalyst/Plugin/RapidApp/RapidDbic/TableBase.pm
 lib/Catalyst/Plugin/RapidApp/RequestLogger.pm
 lib/Catalyst/Plugin/RapidApp/TabGui.pm
+lib/Plack/App/RapidApp/rDbic.pm
 lib/Rapi.pm
 lib/RapidApp.pm
 lib/RapidApp/AppAuth.pm
@@ -151,6 +152,7 @@ lib/RapidApp/Manual/TableSpec.pod
 lib/RapidApp/Model.pm
 lib/RapidApp/ModuleDispatcher.pm
 lib/RapidApp/MooseX/ClassAttrSugar.pm
+lib/RapidApp/Plack/Middleware.pm
 lib/RapidApp/RapidApp.pm
 lib/RapidApp/RecAutoload.pm
 lib/RapidApp/Responder.pm
