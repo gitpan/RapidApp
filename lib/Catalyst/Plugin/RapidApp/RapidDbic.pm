@@ -18,6 +18,7 @@ before 'setup_components' => sub {
   $config->{dbic_models} ||= [];
   
   $config->{dbic_tree_module_name} = 'db';
+  $config->{table_class} = $config->{grid_class} if ($config->{grid_class});
   $config->{table_class} ||= 'Catalyst::Plugin::RapidApp::RapidDbic::TableBase';
   $config->{navcore_default_views} //= 1;
   $config->{configs} ||= {};
@@ -68,8 +69,16 @@ before 'setup_component' => sub {
   my $appclass = ref($c) || $c;
   my $config = $c->config->{'Plugin::RapidApp::RapidDbic'};
   
-  # -- New: read in optional RapidDbic config from the model itself:
-  my $local_cnf = try{$component->config->{RapidDbic}};
+  my $loc_cmp_name = $component;
+  $loc_cmp_name =~ s/^${appclass}\:\://;
+
+  # -- New: read in optional RapidDbic config from the model itself, or from the main 
+  #    app config under the model's config key (i.e. "Model::DB")
+  my $local_cnf = scalar(
+        try{ $component->config          ->{RapidDbic}  }
+     || try{ $c->config->{$loc_cmp_name} ->{RapidDbic}  }
+  );
+
   if($local_cnf) {
     my ($junk,$name) = split(join('::',$appclass,'Model',''),$component,2);
     if($name) {
@@ -388,9 +397,9 @@ DBIC schema.
 The grid_params section allows overriding the parameters to be supplied to the RapidApp module 
 which is automatically built for each source (with a menu point for each in the navtree). By default,
 this is the grid-based module L<Catalyst::Plugin::RapidApp::RapidDbic::TableBase>, but can be changed
-(with the C<table_class> config option) to any module extending a DBIC-aware RapidApp module (which
-are any of the modules based on the "DbicLink" ecosystem) which doesn't even necesarily need to 
-be derived from a grid module at all...
+(with the C<grid_class> config option, see below) to any module extending a DBIC-aware RapidApp 
+module (which are any of the modules based on the "DbicLink" ecosystem) which doesn't even 
+necesarily need to be derived from a grid module at all...
 
 For convenience, the special source name C<'*defaults'> can be used to set params for all sources
 at once.
@@ -415,11 +424,16 @@ L<RapidApp::Manual::TableSpec>
 
 =back
 
-=head2 table_class
+=head2 grid_class
 
 Specify a different RapidApp module class name to use for the source. The default is 
 C<Catalyst::Plugin::RapidApp::RapidDbic::TableBase>. The C<grid_params> for each source
 are supplied to the constructor of this class to create the module instances (for each source).
+
+C<grid_class> can be supplied at the top of the RapidDbic config to apply to all models and
+all sources, within the RapidDbic config at the model level to apply to all sources within
+the given model, or in the individual source config within C<grid_params> to apply to
+only the individual source.
 
 =head2 virtual_columns
 
@@ -432,6 +446,31 @@ In the meantime, see the virtual_column example in the Chinook Demo:
 =item *
 
 L<Chinook Demo - 2.5 - Virtual Columns|http://www.rapidapp.info/demos/chinook/2_5>
+
+=back
+
+=head1 PLACK INTERFACE (QUICK START)
+
+There is also now a L<Plack> interface available which can be used to generate a fully working
+RapidDbic-based app with a working config on-the-fly that can then be mounted like any Plack
+app:
+
+=over
+
+=item *
+
+L<Plack::App::RapidApp::rDbic>
+
+=back
+
+For instant gratification, a script-based wrapper is also available which can fire up an app 
+with a single shell command and dsn argument:
+
+=over
+
+=item *
+
+L<rdbic.pl>
 
 =back
 
