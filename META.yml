@@ -17,7 +17,7 @@ configure_requires:
   ExtUtils::MakeMaker: 0
   File::ShareDir::Install: 0.06
 dynamic_config: 0
-generated_by: 'Dist::Zilla version 5.025, CPAN::Meta::Converter version 2.143240'
+generated_by: 'Dist::Zilla version 5.029, CPAN::Meta::Converter version 2.143240'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -156,4 +156,4 @@ resources:
   bugtracker: https://github.com/vanstyn/RapidApp/issues
   homepage: http://www.rapidapp.info
   repository: https://github.com/vanstyn/RapidApp.git
-version: 0.99652
+version: 0.99660
